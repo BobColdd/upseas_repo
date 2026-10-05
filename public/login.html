@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Log in · UPSEAS CONSULTANTS</title>
+<meta name="description" content="Log in to UPSEAS CONSULTANTS to see your assigned IELTS practice tasks.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Source+Serif+4:wght@400;600&display=swap">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html" aria-label="UPSEAS CONSULTANTS home"><i aria-hidden="true">❄</i>UPSEAS CONSULTANTS</a>
+</header>
+
+<main class="auth">
+
+  <!-- LEFT PANEL: welcome text ------------------------------------------------ -->
+  <aside class="auth-side">
+    <h2>Welcome back</h2>
+    <p style="margin:0">Log in to see the IELTS tasks your tutor has assigned to you.</p>
+    <ul>
+      <li>Timed Listening, Reading, Writing and Speaking tasks</li>
+      <li>Submit once and your tutor reviews your answers</li>
+      <li>Study notes for every skill</li>
+    </ul>
+  </aside>
+
+  <!-- RIGHT PANEL: the form --------------------------------------------------- -->
+  <div class="auth-main">
+    <form class="auth-form" id="form" novalidate>
+      <h1>Log in</h1>
+      <p class="hint" style="margin:0 0 8px">Use the email or username your tutor gave you.</p>
+
+      <div class="field">
+        <label for="login">Email or username</label>
+        <input id="login" name="login" type="text" autocomplete="username" autocapitalize="none" spellcheck="false">
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="pw">
+          <input id="password" name="password" type="password" autocomplete="current-password">
+          <button type="button" id="toggle" aria-pressed="false">Show</button>
+        </div>
+      </div>
+
+      <p class="hint" style="margin:10px 0 14px">Forgot your password? Ask your tutor to reset it for you.</p>
+
+      <p class="msg" id="msg" role="alert" aria-live="polite"></p>
+      <button class="btn full" type="submit" id="submit">Log in</button>
+    </form>
+  </div>
+
+</main>
+
+<footer>
+  <div class="wrap" style="text-align:center">
+    UPSEAS CONSULTANTS ·
+    <i>paving your path to success</i>
+  </div>
+</footer>
+
+<script src="login.js"></script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+/* Admin page styles. Needs theme.css and styles.css. Flat, full-width layout (no cards). */
+
+/* ---------- full-width page ---------- */
+header{padding-left:clamp(16px,3vw,48px);padding-right:clamp(16px,3vw,48px)}
+.wrap{max-width:1800px;padding-left:clamp(16px,3vw,48px);padding-right:clamp(16px,3vw,48px)}
+main .bar{margin:28px 0 0;padding-bottom:18px}
+main .bar h1{font-size:clamp(26px,3vw,34px)}
+
+/* ---------- tabs: underline style ---------- */
+main .pal[role=tablist]{display:flex;gap:4px;margin:0 0 28px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+main .pal[role=tablist]::-webkit-scrollbar{display:none}
+main .pal[role=tablist] button{width:auto!important;height:auto;padding:12px 18px!important;border:0;border-bottom:3px solid transparent;border-radius:0;background:none;color:var(--mute);font-weight:600;white-space:nowrap;margin-bottom:-1px;box-shadow:none}
+main .pal[role=tablist] button:hover{color:var(--ink);border-color:var(--line)}
+main .pal[role=tablist] button[aria-pressed=true]{background:none;color:var(--red);border-color:var(--red);box-shadow:none}
+
+/* ---------- remove cards: flat sections separated by lines ---------- */
+.card{background:none;border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none;padding:20px 0}
+.card h3{font-size:17px;letter-spacing:0}
+.two>.card{border-bottom:0;padding:0}
+.topic{background:none;border:0;border-bottom:1px solid var(--line);border-radius:0;box-shadow:none;margin:0;padding:0}
+.topic[open]{box-shadow:none}
+.topic summary{font-size:16px;padding:14px 0}
+.note{background:none;border:0;border-bottom:1px solid var(--line);border-left:3px solid var(--red);border-radius:0;padding:10px 14px;margin:0}
+.note:last-child{border-bottom:0}
+
+/* ---------- columns spread across the screen ---------- */
+.two{gap:0 clamp(24px,4vw,64px);align-items:start}
+@media(min-width:900px){
+  .two>:nth-child(2){border-left:1px solid var(--line);padding-left:clamp(24px,4vw,64px)}
+  .two:has(#rows){grid-template-columns:minmax(0,1fr) minmax(320px,400px)}        /* students: list + add form */
+  .two:has(.clist){grid-template-columns:minmax(260px,360px) minmax(0,1fr)}       /* content: files + editor */
+  .two:has(.chks):not(:has(#rows)){grid-template-columns:minmax(320px,420px) minmax(0,1fr)}  /* tasks/mocks: form + list */
+  .two:has(.chks){position:relative}
+}
+@media(max-width:899px){
+  .two>:nth-child(2){border-top:1px solid var(--line);margin-top:28px;padding-top:24px}
+}
+
+/* ---------- table ---------- */
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:14px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:12px;color:var(--mute);font-weight:700;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid var(--ink);white-space:nowrap}
+tbody tr{transition:background .12s}
+tbody tr:hover{background:var(--surface)}
+td:last-child{white-space:nowrap}
+td .link{margin-right:14px}
+.tw{overflow-x:auto}
+
+/* ---------- forms ---------- */
+select,input[type=email],input[type=date],input[type=number]{width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:var(--radius);padding:11px 12px}
+.field{margin:14px 0}
+.field label{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+.msg{min-height:22px;font-weight:600;margin:0 0 10px}
+.msg.err{color:var(--red)}
+.btn.full{width:100%;padding:13px}
+.link{background:none;border:0;color:var(--red);font-weight:700;text-decoration:underline;text-underline-offset:3px;padding:0}
+.link:hover{color:var(--red-d)}
+.badge{display:inline-block;font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px;border:1.5px solid var(--line);background:var(--bg);margin-left:6px}
+.badge.ok{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chks{display:grid;gap:6px 12px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));max-height:220px;overflow:auto;margin:8px 0 14px;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--radius)}
+.chk{display:flex;gap:8px;align-items:center}
+.chk input,.row input{accent-color:var(--red)}
+.chip.band{border-color:var(--red)}
+.chip.band b{color:var(--red)}
+.chip.tot{background:var(--red);color:#fff;border-color:var(--red)}
+.chip.tot b{color:#fff}
+
+/* ---------- content manager ---------- */
+.clist{max-height:calc(100vh - 300px);min-height:280px;overflow:auto;border-top:1px solid var(--line)}
+.crow{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:10px 12px;word-break:break-all;transition:background .12s}
+.crow:hover{background:var(--surface)}
+.crow small{display:block;color:var(--mute)}
+.crow[aria-current=true]{background:var(--red-soft);box-shadow:inset 4px 0 0 var(--red);font-weight:600}
+.code{font-family:ui-monospace,Consolas,monospace;font-size:13px;line-height:1.55;min-height:min(65vh,640px);white-space:pre;tab-size:2;background:var(--surface)}
+.inline{display:flex;gap:8px;margin-bottom:16px}
+
+/* ---------- content manager: grouped file list ---------- */
+.cgroup{border-bottom:1px solid var(--line)}
+.cgroup:last-child{border-bottom:0}
+.cgroup summary{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;padding:10px 12px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);background:var(--surface);position:sticky;top:0;z-index:1}
+.cgroup summary::-webkit-details-marker{display:none}
+.cgroup summary::before{content:"\25B8";transition:transform .15s}
+.cgroup[open] summary::before{transform:rotate(90deg)}
+.cgroup summary b{flex:1}
+.cgroup summary span{font-weight:600;letter-spacing:0;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:0 9px}
+.cgroup .crow{padding-left:30px}

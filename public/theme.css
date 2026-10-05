@@ -1,0 +1,13 @@
+/* Theme tokens: change colours and fonts here. */
+:root{
+  --red:#D6001C;--red-d:#A80016;--red-soft:#FDECEE;
+  --bg:#FFFFFF;--surface:#F6F4F3;--line:#E3DEDC;--ink:#1C1A1A;--mute:#6A6462;--on-red:#fff;
+  --radius:8px;--radius-lg:14px;
+  --shadow-sm:0 1px 2px rgba(28,26,26,.06),0 1px 3px rgba(28,26,26,.05);
+  --shadow:0 4px 12px rgba(28,26,26,.07),0 2px 4px rgba(28,26,26,.04);
+  --shadow-lg:0 14px 34px rgba(28,26,26,.14);
+  --ease:cubic-bezier(.2,.7,.2,1);
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161314;--surface:#221E1F;--line:#3A3435;--ink:#F3EFEE;--mute:#A89F9D;--red:#F0324A;--red-soft:#3A1D22;--shadow-sm:0 1px 2px rgba(0,0,0,.4);--shadow:0 4px 12px rgba(0,0,0,.4);--shadow-lg:0 14px 34px rgba(0,0,0,.55)}}
+:root[data-theme="dark"]{--bg:#161314;--surface:#221E1F;--line:#3A3435;--ink:#F3EFEE;--mute:#A89F9D;--red:#F0324A;--red-soft:#3A1D22;--shadow-sm:0 1px 2px rgba(0,0,0,.4);--shadow:0 4px 12px rgba(0,0,0,.4);--shadow-lg:0 14px 34px rgba(0,0,0,.55)}
+:root{--font-ui:"Bricolage Grotesque",system-ui,sans-serif}
