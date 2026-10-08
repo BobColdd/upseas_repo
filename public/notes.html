@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Study notes · UPSEAS CONSULTANTS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="app.css">
+</head>
+
+<body data-auth="required">
+<div class="app">
+
+<header class="topbar">
+  <a class="logo" id="logo" href="index.html" aria-label="UPSEAS CONSULTANTS home">
+    <span class="dots" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <span><b>UPSEAS CONSULTANTS</b><small>IELTS Training Platform</small></span>
+  </a>
+  <nav aria-label="Main">
+    <a href="dashboard.html" data-student-only hidden>Dashboard</a>
+    <a href="practice.html" data-student-only hidden>Practice</a>
+    <a href="notes.html" data-user-only hidden>Notes</a>
+    <a href="admin.html" data-admin-only hidden>Dashboard</a>
+  </nav>
+  <div class="user" id="user"></div>
+</header>
+
+<div class="layout">
+
+  <!-- SIDE MENU -->
+  <nav class="side" aria-label="Sections">
+    <a href="admin.html" data-admin-only hidden><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard</a>
+    <a href="dashboard.html" data-student-only hidden><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard</a>
+    <a href="practice.html" data-student-only hidden><svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>Practice</a>
+    <a href="notes.html"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h12l4 4v12H4z"/><path d="M8 12h8M8 16h5"/></svg>Notes</a>
+    <div class="goal" data-student-only hidden>
+      <svg class="i" viewBox="0 0 24 24" style="font-size:22px;color:var(--red)"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+      <b>Your IELTS goal is within reach.</b>Consistent practice and the right guidance make real progress.
+      <a class="btn" href="practice.html" style="color:#fff">Keep going</a>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="notes">
+
+    <!-- overview: the four skill cards -->
+    <div id="overview">
+      <div class="crumb"><span><svg class="i" viewBox="0 0 24 24"><path d="M4 4h12l4 4v12H4z"/></svg></span>Study Notes</div>
+      <h1>IELTS Study Notes</h1>
+      <p class="sub">Clear, focused notes for all four skills. Learn key strategies, understand the test format, and find useful tips to improve your band score.</p>
+      <div class="mods">
+      <section class="mod">
+        <div class="top"><span class="ico"><svg class="i" viewBox="0 0 24 24"><path d="M3 5h8a3 3 0 0 1 1 1v14a3 3 0 0 0-1-1H3zM21 5h-8a3 3 0 0 0-1 1v14a3 3 0 0 1 1-1h8z"/></svg></span><div><h2>Reading</h2><p>Build your reading skills with test format, question types and proven strategies.</p></div></div>
+        <ul><li>Test format and timing</li><li>Question types (MCQ, True/False/Not Given, etc.)</li><li>Skimming and scanning techniques</li><li>Common vocabulary and paraphrasing</li><li>Practice tips and common mistakes</li></ul>
+        <button class="btn" onclick="showSkill('reading')">View Notes <svg class="i" viewBox="0 0 24 24" style="font-size:13px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <svg class="i deco" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h8a3 3 0 0 1 1 1v14a3 3 0 0 0-1-1H3zM21 5h-8a3 3 0 0 0-1 1v14a3 3 0 0 1 1-1h8z"/></svg>
+      </section>
+      <section class="mod">
+        <div class="top"><span class="ico"><svg class="i" viewBox="0 0 24 24"><path d="M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v6H4zM17 14h3v6h-3z"/></svg></span><div><h2>Listening</h2><p>Learn how to understand different accents, recognise key information and answer with confidence.</p></div></div>
+        <ul><li>Test format and section overview</li><li>Common question types</li><li>Key words and signal words</li><li>Note-taking techniques</li><li>Practice tips and useful phrases</li></ul>
+        <button class="btn" onclick="showSkill('listening')">View Notes <svg class="i" viewBox="0 0 24 24" style="font-size:13px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <svg class="i deco" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v6H4zM17 14h3v6h-3z"/></svg>
+      </section>
+      <section class="mod">
+        <div class="top"><span class="ico"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/></svg></span><div><h2>Writing</h2><p>Understand the two tasks, learn how to structure your essays and improve your grammar and vocabulary.</p></div></div>
+        <ul><li>Task 1 (Academic &amp; General)</li><li>Task 2 (Essay writing)</li><li>Essay structure and paragraphing</li><li>Lexical resources and linking words</li><li>Common errors to avoid</li></ul>
+        <button class="btn" onclick="showSkill('writing')">View Notes <svg class="i" viewBox="0 0 24 24" style="font-size:13px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <svg class="i deco" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h10l4 4v14H5zM9 11h6M9 15h6"/></svg>
+      </section>
+      <section class="mod">
+        <div class="top"><span class="ico"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M9 10h.01M12 10h.01M15 10h.01"/></svg></span><div><h2>Speaking</h2><p>Gain confidence with practical tips, useful phrases and strategies for each part.</p></div></div>
+        <ul><li>Part 1: Introduction and interview</li><li>Part 2: Long turn (Cue Card)</li><li>Part 3: Discussion</li><li>Useful vocabulary and expressions</li><li>Pronunciation and fluency tips</li></ul>
+        <button class="btn" onclick="showSkill('speaking')">View Notes <svg class="i" viewBox="0 0 24 24" style="font-size:13px"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <svg class="i deco" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 19a6 6 0 0 1 12 0M14 19a4 4 0 0 1 7 0"/></svg>
+      </section>
+      </div>
+    </div>
+
+    <!-- detail: one skill at a time -->
+
+    <!-- ================================================================ -->
+    <!-- LISTENING                                                      -->
+    <!-- ================================================================ -->
+    <div id="panel-listening" hidden>
+      <button class="back" onclick="showSkill()">← All notes</button>
+
+    <div class="detail-head"><span class="ico"><svg class="i" viewBox="0 0 24 24"><path d="M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v6H4zM17 14h3v6h-3z"/></svg></span><div><h2>Listening</h2><p>Audio recordings with timed questions and realistic practice conditions.</p><span class="chip">4 sections</span>
+      <span class="chip">40 questions</span>
+      <span class="chip">About 30 minutes</span>
+      <span class="chip">Each recording is played once</span></div></div>
+
+    <details class="topic" open>
+      <summary>What the four sections contain</summary>
+      <ul class="serif">
+        <li>Section 1: a conversation between two people in an everyday social situation, such as booking a service.</li>
+        <li>Section 2: a monologue in an everyday social context, such as a talk about local facilities.</li>
+        <li>Section 3: a conversation between up to four people in an education or training setting.</li>
+        <li>Section 4: a monologue on an academic subject, such as a university lecture.</li>
+        <li>The sections get harder as the recording goes on.</li>
+      </ul>
+    </details>
+
+    <details class="topic">
+      <summary>Question types</summary>
+      <ul class="serif">
+        <li>Multiple choice.</li>
+        <li>Matching.</li>
+        <li>Plan, map and diagram labelling.</li>
+        <li>Form, note, table, flow-chart and summary completion.</li>
+        <li>Sentence completion and short-answer questions.</li>
+      </ul>
+    </details>
+
+    <details class="topic">
+      <summary>Tips for a higher score</summary>
+      <ul class="serif">
+        <li>Use the preparation time to read the questions and predict the type of answer you need.</li>
+        <li>Check the word limit for each task. Going over it makes the answer wrong.</li>
+        <li>Answers follow the order of the recording. If you lose your place, move on to the next question.</li>
+        <li>Listen for corrections. Speakers often change their mind ("Actually, make that Thursday").</li>
+        <li>Spelling and singular/plural forms count, so check them.</li>
+      </ul>
+    </details>
+
+    <div class="detail-foot" data-student-only hidden>
+      <span class="hint">Ready to test yourself?</span>
+      <a class="btn" href="practice.html?skill=listening">Open my Listening tasks</a>
+    </div>
+  </div>
+
+    <!-- ================================================================ -->
+    <!-- READING                                                      -->
+    <!-- ================================================================ -->
+    <div id="panel-reading" hidden>
+      <button class="back" onclick="showSkill()">← All notes</button>
+
+    <div class="detail-head"><span class="ico"><svg class="i" viewBox="0 0 24 24"><path d="M3 5h8a3 3 0 0 1 1 1v14a3 3 0 0 0-1-1H3zM21 5h-8a3 3 0 0 0-1 1v14a3 3 0 0 1 1-1h8z"/></svg></span><div><h2>Reading</h2><p>Passages with a range of IELTS question types and timed practice.</p><span class="chip">3 sections</span>
+      <span class="chip">40 questions</span>
+      <span class="chip">60 minutes</span>
+      <span class="chip">No extra time to copy answers</span></div></div>
+
+    <details class="topic" open>
+      <summary>Academic and General Training</summary>
+      <ul class="serif">
+        <li>Academic: three long passages taken from books, journals, magazines and newspapers.</li>
+        <li>General Training: short everyday texts first (notices, adverts), then workplace texts, then one longer passage.</li>
+        <li>Both versions have 40 questions in 60 minutes, so manage your time carefully.</li>
+      </ul>
+    </details>
+
+    <details class="topic">
+      <summary>Question types</summary>
+      <ul class="serif">
+        <li>True / False / Not Given and Yes / No / Not Given.</li>
+        <li>Matching headings, information and features.</li>
+        <li>Sentence, summary, note, table and flow-chart completion.</li>
+        <li>Multiple choice and short-answer questions.</li>
+        <li>Diagram labelling.</li>
+      </ul>
+    </details>
+
+    <details class="topic">
+      <summary>Tips for a higher score</summary>
+      <ul class="serif">
+        <li>Spend about 20 minutes on each passage. Do not let one hard passage use up the whole hour.</li>
+        <li>Skim each passage first to see how it is organised, then read for detail when a question needs it.</li>
+        <li>"False" means the text says the opposite. "Not Given" means the text does not say either way.</li>
+        <li>Questions use different words from the text, so look for paraphrases and not exact matches.</li>
+        <li>Write your answers on the answer sheet as you go. There is no extra time at the end.</li>
+      </ul>
+    </details>
+
+    <div class="detail-foot" data-student-only hidden>
+      <span class="hint">Ready to test yourself?</span>
+      <a class="btn" href="practice.html?skill=reading">Open my Reading tasks</a>
+    </div>
+  </div>
+
+    <!-- ================================================================ -->
+    <!-- WRITING                                                      -->
+    <!-- ================================================================ -->
+    <div id="panel-writing" hidden>
+      <button class="back" onclick="showSkill()">← All notes</button>
+
+    <div class="detail-head"><span class="ico"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/></svg></span><div><h2>Writing</h2><p>Essays and reports completed against the clock and submitted for review.</p><span class="chip">2 tasks</span>
+      <span class="chip">60 minutes</span>
+      <span class="chip">Task 1: at least 150 words</span>
+      <span class="chip">Task 2: at least 250 words</span></div></div>
+
+    <details class="topic" open>
+      <summary>The two tasks</summary>
+      <ul class="serif">
+        <li>Academic Task 1: describe a graph, chart, table, process or map in your own words.</li>
+        <li>General Training Task 1: write a letter, formal, semi-formal or informal depending on the situation.</li>
+        <li>Task 2 (both tests): write an essay responding to a point of view, argument or problem.</li>
+        <li>Task 2 is worth more than Task 1, so spend about 40 minutes on it and about 20 on Task 1.</li>
+      </ul>
+    </details>
+
+    <details class="topic">
+      <summary>How Writing is marked</summary>
+      <ul class="serif">
+        <li>Task Achievement (Task 1) or Task Response (Task 2): did you answer every part of the question?</li>
+        <li>Coherence and Cohesion: is the writing organised into clear paragraphs and linked logically?</li>
+        <li>Lexical Resource: range and accuracy of vocabulary.</li>
+        <li>Grammatical Range and Accuracy: variety and correctness of sentence structures.</li>
+      </ul>
+    </details>
+
+    <details class="topic">
+      <summary>Tips for a higher score</summary>
+      <ul class="serif">
+        <li>Spend a few minutes planning before you write.</li>
+        <li>Read the question again at the end to check that you answered every part.</li>
+        <li>For Academic Task 1, include a clear overview of the main trends or features.</li>
+        <li>Give reasons and examples in Task 2 to support your opinions.</li>
+        <li>Do not memorise whole answers. Examiners can spot them, and they may not fit the question.</li>
+        <li>Leave a minute or two to check spelling, grammar and word count.</li>
+      </ul>
+    </details>
+
+    <div class="detail-foot" data-student-only hidden>
+      <span class="hint">Ready to test yourself?</span>
+      <a class="btn" href="practice.html?skill=writing">Open my Writing tasks</a>
+    </div>
+  </div>
+
+    <!-- ================================================================ -->
+    <!-- SPEAKING                                                      -->
+    <!-- ================================================================ -->
+    <div id="panel-speaking" hidden>
+      <button class="back" onclick="showSkill()">← All notes</button>
+
+    <div class="detail-head"><span class="ico"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M9 10h.01M12 10h.01M15 10h.01"/></svg></span><div><h2>Speaking</h2><p>Record your answers to examiner-style prompts and practise speaking under realistic conditions.</p><span class="chip">3 parts</span>
+      <span class="chip">11–14 minutes</span>
+      <span class="chip">One-to-one with an examiner</span>
+      <span class="chip">Recorded</span></div></div>
+
+    <details class="topic" open>
+      <summary>The three parts</summary>
+      <ul class="serif">
+        <li>Part 1: introduction and interview, about 4–5 minutes. Questions on familiar topics such as home, work, studies and hobbies.</li>
+        <li>Part 2: the long turn. You get a task card and one minute to prepare, then speak for 1–2 minutes.</li>
+        <li>Part 3: a two-way discussion, about 4–5 minutes. Questions are more abstract and linked to the Part 2 topic.</li>
+      </ul>
+    </details>
+
+    <details class="topic">
+      <summary>How Speaking is marked</summary>
+      <ul class="serif">
+        <li>Fluency and Coherence: speaking at a natural pace and organising your ideas.</li>
+        <li>Lexical Resource: range of vocabulary and how precisely you use it.</li>
+        <li>Grammatical Range and Accuracy: variety and correctness of structures.</li>
+        <li>Pronunciation: clear sounds, stress and intonation.</li>
+      </ul>
+    </details>
+
+    <details class="topic">
+      <summary>Tips for a higher score</summary>
+      <ul class="serif">
+        <li>Extend your answers with a reason or an example. One-word answers give the examiner nothing to assess.</li>
+        <li>Use your preparation minute in Part 2 to jot down key words, not full sentences.</li>
+        <li>If you do not understand a question, it is fine to ask the examiner to repeat it.</li>
+        <li>Do not memorise scripts. Speak naturally, and correct yourself if you make a mistake.</li>
+        <li>Practise out loud and listen back to your recordings.</li>
+      </ul>
+    </details>
+
+    <div class="detail-foot" data-student-only hidden>
+      <span class="hint">Ready to test yourself?</span>
+      <a class="btn" href="practice.html?skill=speaking">Open my Speaking tasks</a>
+    </div>
+  </div>
+
+  </main>
+
+  <!-- RIGHT COLUMN -->
+  <aside>
+    <div class="panel-s">
+      <h3><svg class="i" viewBox="0 0 24 24"><path d="M10 14l11-11M21 3l-7 18-4-7-7-4z"/></svg>Quick Links</h3>
+      <a class="ql" href="index.html#format"><span class="qi"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9l4 4 4-5"/></svg></span><div><b>IELTS Test Format</b><small>Overview of all sections</small></div></a>
+      <a class="ql" href="index.html#bands"><span class="qi"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="9" r="5"/><path d="M8 14l-2 7 6-3 6 3-2-7"/></svg></span><div><b>Band Score Guide</b><small>Understand how it's marked</small></div></a>
+      <a class="ql" href="index.html#overall-score"><span class="qi"><svg class="i" viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg></span><div><b>Overall Band Score</b><small>How it is calculated</small></div></a>
+    </div>
+    <div class="panel-s quote">“The limits of my language are the limits of my world.”<em>— Ludwig Wittgenstein</em></div>
+    <div class="panel-s tips">
+      <h3><svg class="i" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10c1 1 1 2 1 3h6c0-1 0-2 1-3a6 6 0 0 0-4-10z"/></svg>Study Tips</h3>
+      <ol><li>Practise regularly, even if it's just for 30 minutes.</li><li>Focus on your weaknesses and track your progress.</li><li>Use authentic materials (news, podcasts, etc.).</li><li>Keep a vocabulary notebook.</li><li>Stay positive and be consistent!</li></ol>
+    </div>
+  </aside>
+
+</div>
+
+<footer class="sitefoot">
+  <div class="wrap">UPSEAS CONSULTANTS · <i>paving your path to success</i></div>
+</footer>
+
+</div>
+<script src="shell.js"></script>
+<script src="notes.js"></script>
+</body>
+</html>

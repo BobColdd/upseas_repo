@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard · UPSEAS CONSULTANTS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="app.css">
+</head>
+
+<body data-auth="required" data-role="student">
+<div class="app">
+
+<header class="topbar">
+  <a class="logo" id="logo" href="dashboard.html" aria-label="UPSEAS CONSULTANTS dashboard">
+    <span class="dots" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <span><b>UPSEAS CONSULTANTS</b><small>IELTS Training Platform</small></span>
+  </a>
+  <nav aria-label="Main">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="practice.html">Practice</a>
+    <a href="notes.html">Notes</a>
+  </nav>
+  <div class="user" id="user"></div>
+</header>
+
+<div class="layout">
+
+  <!-- SIDE MENU -->
+  <nav class="side" aria-label="Sections">
+    <a href="dashboard.html"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard</a>
+    <a href="practice.html"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>Practice</a>
+    <a href="notes.html"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h12l4 4v12H4z"/><path d="M8 12h8M8 16h5"/></svg>Notes</a>
+    <div class="goal">
+      <svg class="i" viewBox="0 0 24 24" style="font-size:22px;color:var(--red)"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+      <b>Your IELTS goal is within reach.</b>Consistent practice and the right guidance make real progress.
+      <a class="btn" href="practice.html" style="color:#fff">Keep going</a>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="notes">
+    <div class="crumb"><span><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span>Dashboard</div>
+    <h1 id="hello">Welcome back</h1>
+    <p class="sub" id="lead">Here is what your tutor has set for you.</p>
+
+    <div class="tk-banner" id="newbanner" role="status" hidden>
+      <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <span id="newtext"></span>
+      <a class="btn" href="practice.html">View tasks</a>
+      <button class="tk-x" id="newx" aria-label="Dismiss">×</button>
+    </div>
+
+    <div class="tk-stats" id="stats" hidden>
+      <div class="tk-stat"><b id="s-todo">0</b><span>To do</span></div>
+      <div class="tk-stat"><b id="s-late">0</b><span>Overdue</span></div>
+      <div class="tk-stat"><b id="s-done">0</b><span>Submitted</span></div>
+    </div>
+
+    <section class="tk-sec">
+      <div class="tk-sechead"><h2>Up next</h2><a href="practice.html">All practice tests →</a></div>
+      <div id="next"><p class="hint">Loading your tasks…</p></div>
+      <p class="msg" id="err" role="alert"></p>
+    </section>
+
+    <section class="tk-sec">
+      <div class="tk-sechead"><h2>Study notes</h2><a href="notes.html">All notes →</a></div>
+      <div class="tk-skills">
+        <a href="notes.html?skill=reading"><span class="ico"><svg class="i" viewBox="0 0 24 24"><path d="M3 5h8a3 3 0 0 1 1 1v14a3 3 0 0 0-1-1H3zM21 5h-8a3 3 0 0 0-1 1v14a3 3 0 0 1 1-1h8z"/></svg></span>Reading</a>
+        <a href="notes.html?skill=listening"><span class="ico"><svg class="i" viewBox="0 0 24 24"><path d="M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v6H4zM17 14h3v6h-3z"/></svg></span>Listening</a>
+        <a href="notes.html?skill=writing"><span class="ico"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/></svg></span>Writing</a>
+        <a href="notes.html?skill=speaking"><span class="ico"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M9 10h.01M12 10h.01M15 10h.01"/></svg></span>Speaking</a>
+      </div>
+    </section>
+  </main>
+
+  <!-- ASIDE -->
+  <aside>
+    <div class="panel-s">
+      <h3><svg class="i" viewBox="0 0 24 24"><path d="M10 14l11-11M21 3l-7 18-4-7-7-4z"/></svg>Quick Links</h3>
+      <a class="ql" href="practice.html"><span class="qi"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span><div><b>My practice tests</b><small>Tasks your tutor assigned</small></div><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
+      <a class="ql" href="notes.html"><span class="qi"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h12l4 4v12H4z"/><path d="M8 12h8M8 16h5"/></svg></span><div><b>Study notes</b><small>Strategies for all four skills</small></div><svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></a>
+    </div>
+    <div class="panel-s quote">“The limits of my language are the limits of my world.”<em>— Ludwig Wittgenstein</em></div>
+    <div class="panel-s tips">
+      <h3><svg class="i" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10c1 1 1 2 1 3h6c0-1 0-2 1-3a6 6 0 0 0-4-10z"/></svg>Study Tips</h3>
+      <ol><li>Practise regularly, even if it's just for 30 minutes.</li><li>Focus on your weaknesses and track your progress.</li><li>Use authentic materials (news, podcasts, etc.).</li><li>Keep a vocabulary notebook.</li><li>Stay positive and be consistent!</li></ol>
+    </div>
+  </aside>
+
+</div>
+
+<footer class="sitefoot">
+  <div class="wrap">UPSEAS CONSULTANTS · <i>paving your path to success</i></div>
+</footer>
+
+</div>
+<script src="shell.js"></script>
+<script src="tasks.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>

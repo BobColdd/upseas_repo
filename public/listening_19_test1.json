@@ -1,0 +1,338 @@
+{
+  "layout": "listening",
+  "audio": "/audio/listening/listening-test-1.mp3",
+  "sections": [
+    {
+      "label": "Part 1",
+      "heading": "Questions 1–10: Willowbank Community Garden",
+      "instructions": "Complete the notes below. Write ONE WORD AND/OR A NUMBER for each answer.",
+      "questions": [
+        {
+          "id": "q1",
+          "type": "text",
+          "text": "The garden – Size: ........ square metres"
+        },
+        {
+          "id": "q2",
+          "type": "text",
+          "text": "The garden – Areas: vegetable beds, an orchard and a ........ for bees"
+        },
+        {
+          "id": "q3",
+          "type": "text",
+          "text": "The garden – Open every day except ........"
+        },
+        {
+          "id": "q4",
+          "type": "text",
+          "text": "Workshops – Cooking: children prepare ........ using vegetables from the garden"
+        },
+        {
+          "id": "q5",
+          "type": "text",
+          "text": "Workshops – Art: making ........ from recycled materials"
+        },
+        {
+          "id": "q6",
+          "type": "text",
+          "text": "Workshops – Science: testing the ........ in different beds"
+        },
+        {
+          "id": "q7",
+          "type": "text",
+          "text": "Benefits – Visitors say it gives them a sense of ........ in the neighbourhood"
+        },
+        {
+          "id": "q8",
+          "type": "text",
+          "text": "Benefits – Volunteers gain new ........ such as planting and pruning"
+        },
+        {
+          "id": "q9",
+          "type": "text",
+          "text": "Practical – Membership costs £ ........ per year"
+        },
+        {
+          "id": "q10",
+          "type": "text",
+          "text": "Practical – Free parking is available behind the ........"
+        }
+      ]
+    },
+    {
+      "label": "Part 2",
+      "heading": "Questions 11–20: Harbourside Walking Club",
+      "instructions": "Questions 11–15: choose the correct letter, A, B or C. Questions 16–20: label the map. Write the correct letter, A–H, for each place.",
+      "questions": [
+        {
+          "id": "q11",
+          "type": "mcq",
+          "text": "Members joined the club mainly because they wanted to",
+          "options": [
+            "meet new people",
+            "get fitter",
+            "explore the coastline"
+          ]
+        },
+        {
+          "id": "q12",
+          "type": "mcq",
+          "text": "What is planned for the club's tenth anniversary?",
+          "options": [
+            "a charity walk",
+            "a photo exhibition",
+            "a picnic on the pier"
+          ]
+        },
+        {
+          "id": "q13",
+          "type": "mcq",
+          "text": "Which route was the most popular last year?",
+          "options": [
+            "the cliff path",
+            "the river trail",
+            "the woodland loop"
+          ]
+        },
+        {
+          "id": "q14",
+          "type": "mcq",
+          "text": "On the first walk of the season, members are asked to",
+          "options": [
+            "bring their own lunch",
+            "wear bright clothing",
+            "arrive fifteen minutes early"
+          ]
+        },
+        {
+          "id": "q15",
+          "type": "mcq",
+          "text": "At the end of each walk there is usually a chance to",
+          "options": [
+            "buy local produce",
+            "visit a museum",
+            "have tea at the café"
+          ]
+        },
+        {
+          "type": "figure",
+          "image": "/images/riverside_image.png",
+          "alt": "Map of Riverside Gardens with points marked A to H",
+          "caption": "Riverside Gardens"
+        },
+        {
+          "id": "q16",
+          "type": "map",
+          "text": "Plant nursery",
+          "letters": "ABCDEFGH"
+        },
+        {
+          "id": "q17",
+          "type": "map",
+          "text": "Wheelchair entrance",
+          "letters": "ABCDEFGH"
+        },
+        {
+          "id": "q18",
+          "type": "map",
+          "text": "Children's play area",
+          "letters": "ABCDEFGH"
+        },
+        {
+          "id": "q19",
+          "type": "map",
+          "text": "Herb garden",
+          "letters": "ABCDEFGH"
+        },
+        {
+          "id": "q20",
+          "type": "map",
+          "text": "Rose pavilion",
+          "letters": "ABCDEFGH"
+        }
+      ]
+    },
+    {
+      "label": "Part 3",
+      "heading": "Questions 21–30: Glass recycling project",
+      "instructions": "Questions 21–24: choose the correct letter. Questions 25–30: what is the tutor's opinion about each part of the project report? Choose the correct letter, A–F.",
+      "questions": [
+        {
+          "id": "q21",
+          "type": "mcq",
+          "text": "What did Priya find most difficult about her glass recycling project?",
+          "options": [
+            "collecting enough bottles",
+            "melting the glass evenly",
+            "finding a place to work"
+          ]
+        },
+        {
+          "id": "q22",
+          "type": "mcq",
+          "text": "Tom suggests that next time the group should",
+          "options": [
+            "use a larger kiln",
+            "test smaller samples first",
+            "ask for expert advice earlier"
+          ]
+        },
+        {
+          "id": "q23",
+          "type": "mcq",
+          "text": "What do both students think about the colour of the finished tiles?",
+          "options": [
+            "It was better than expected.",
+            "It varied too much.",
+            "It matched the original design."
+          ]
+        },
+        {
+          "id": "q24",
+          "type": "mcq",
+          "text": "How will they present their findings?",
+          "options": [
+            "in a short video",
+            "with a live demonstration",
+            "as a printed report"
+          ]
+        },
+        {
+          "id": "q25",
+          "type": "mcq",
+          "text": "Introduction",
+          "options": [
+            "needs more detail",
+            "is well organised",
+            "should be shorter",
+            "is too technical",
+            "contains useful examples",
+            "needs better images"
+          ]
+        },
+        {
+          "id": "q26",
+          "type": "mcq",
+          "text": "Method",
+          "options": [
+            "needs more detail",
+            "is well organised",
+            "should be shorter",
+            "is too technical",
+            "contains useful examples",
+            "needs better images"
+          ]
+        },
+        {
+          "id": "q27",
+          "type": "mcq",
+          "text": "Results",
+          "options": [
+            "needs more detail",
+            "is well organised",
+            "should be shorter",
+            "is too technical",
+            "contains useful examples",
+            "needs better images"
+          ]
+        },
+        {
+          "id": "q28",
+          "type": "mcq",
+          "text": "Graphs",
+          "options": [
+            "needs more detail",
+            "is well organised",
+            "should be shorter",
+            "is too technical",
+            "contains useful examples",
+            "needs better images"
+          ]
+        },
+        {
+          "id": "q29",
+          "type": "mcq",
+          "text": "Conclusion",
+          "options": [
+            "needs more detail",
+            "is well organised",
+            "should be shorter",
+            "is too technical",
+            "contains useful examples",
+            "needs better images"
+          ]
+        },
+        {
+          "id": "q30",
+          "type": "mcq",
+          "text": "References",
+          "options": [
+            "needs more detail",
+            "is well organised",
+            "should be shorter",
+            "is too technical",
+            "contains useful examples",
+            "needs better images"
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Part 4",
+      "heading": "Questions 31–40: Sandmere Salt Marsh",
+      "instructions": "Complete the notes below. Write ONE WORD ONLY for each answer.",
+      "questions": [
+        {
+          "id": "q31",
+          "type": "text",
+          "text": "Discovery – In the 1950s, a local farmer noticed unusual ........ appearing in the mud at low tide"
+        },
+        {
+          "id": "q32",
+          "type": "text",
+          "text": "Discovery – Volunteers from the nearby ........ helped to survey the site"
+        },
+        {
+          "id": "q33",
+          "type": "text",
+          "text": "Discovery – A traditional ........ used by villagers helped to locate the oldest structures"
+        },
+        {
+          "id": "q34",
+          "type": "text",
+          "text": "Discovery – Wooden items survived because of a lack of ........ in the mud"
+        },
+        {
+          "id": "q35",
+          "type": "text",
+          "text": "Salt makers – Shelters were ........ in shape with a hearth in the centre"
+        },
+        {
+          "id": "q36",
+          "type": "text",
+          "text": "Salt makers – They boiled seawater in clay ........ to produce salt"
+        },
+        {
+          "id": "q37",
+          "type": "text",
+          "text": "Salt makers – Each salt pan could supply enough salt for a whole ........"
+        },
+        {
+          "id": "q38",
+          "type": "text",
+          "text": "Salt makers – No evidence of buildings for animals during ........"
+        },
+        {
+          "id": "q39",
+          "type": "text",
+          "text": "Reasons for the decline – a change in ........ levels"
+        },
+        {
+          "id": "q40",
+          "type": "text",
+          "text": "Reasons for the decline – an increase in ........ from foreign producers"
+        }
+      ]
+    }
+  ]
+}
