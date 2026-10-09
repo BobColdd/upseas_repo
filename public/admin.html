@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Admin · UPSEAS CONSULTANTS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="app.css">
+</head>
+
+<body class="adm" data-auth="required" data-role="admin">
+<div class="app">
+
+<header class="topbar">
+  <a class="logo" id="logo" href="admin.html" aria-label="UPSEAS CONSULTANTS dashboard">
+    <span class="dots" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <span><b>UPSEAS CONSULTANTS</b><small>IELTS Training Platform</small></span>
+  </a>
+  <nav aria-label="Main">
+    <a href="admin.html">Dashboard</a>
+    <a href="notes.html">Notes</a>
+  </nav>
+  <div class="user" id="user"></div>
+</header>
+
+<div class="layout">
+  <!-- SIDE MENU: the admin sections (built by admin.js from data/admin.json) -->
+  <nav class="side" id="atabs" aria-label="Admin sections"></nav>
+  <!-- MAIN -->
+  <main class="notes" id="app"><p class="hint">Loading…</p></main>
+</div>
+
+<footer class="sitefoot">
+  <div class="wrap">UPSEAS CONSULTANTS · <i>paving your path to success</i></div>
+</footer>
+
+</div>
+<script src="common.js"></script>
+<script src="shell.js"></script>
+<script src="admin-content.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

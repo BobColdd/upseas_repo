@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+content/
+audio/listening/*.mp3
+audio/speaking/*.mp3
+public/files(1)*
+files(1)/

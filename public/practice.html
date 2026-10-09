@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Practice · UPSEAS CONSULTANTS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="app.css">
+</head>
+
+<body data-auth="required" data-role="student">
+<div class="app">
+
+<header class="topbar">
+  <a class="logo" id="logo" href="index.html" aria-label="UPSEAS CONSULTANTS home">
+    <span class="dots" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+    <span><b>UPSEAS CONSULTANTS</b><small>IELTS Training Platform</small></span>
+  </a>
+  <nav aria-label="Main">
+    <a href="dashboard.html" data-student-only hidden>Dashboard</a>
+    <a href="practice.html" data-student-only hidden>Practice</a>
+    <a href="notes.html" data-user-only hidden>Notes</a>
+  </nav>
+  <div class="user" id="user"></div>
+</header>
+
+<div id="intro" class="layout">
+
+  <!-- SIDE MENU -->
+  <nav class="side" aria-label="Sections">
+    <a href="dashboard.html"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard</a>
+    <a href="practice.html"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>Practice</a>
+    <a href="notes.html"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h12l4 4v12H4z"/><path d="M8 12h8M8 16h5"/></svg>Notes</a>
+  </nav>
+
+  <!-- MAIN: the assigned tasks -->
+  <main class="notes">
+    <div class="crumb"><span><svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span>Practice</div>
+    <h1>Practice tests</h1>
+    <p class="sub">The tasks your tutor has assigned to you. Every task is timed and follows the real IELTS format. Press <b>Start task</b> when you are ready.</p>
+
+    <div class="tk-bar">
+      <div class="tk-tabs" role="group" aria-label="Show">
+        <button data-view="todo" aria-pressed="true">To do <i id="c-todo">0</i></button>
+        <button data-view="done" aria-pressed="false">Submitted <i id="c-done">0</i></button>
+        <button data-view="all" aria-pressed="false">All <i id="c-all">0</i></button>
+      </div>
+      <div class="tk-tabs" role="group" aria-label="Skill">
+        <button data-skill="" aria-pressed="true">Any skill</button>
+        <button data-skill="reading" aria-pressed="false">Reading</button>
+        <button data-skill="listening" aria-pressed="false">Listening</button>
+        <button data-skill="writing" aria-pressed="false">Writing</button>
+        <button data-skill="speaking" aria-pressed="false">Speaking</button>
+      </div>
+    </div>
+
+    <div id="tasks" class="tk-list"><p class="hint">Loading your tasks…</p></div>
+    <p class="msg" id="intro-msg" role="alert"></p>
+  </main>
+
+  <!-- ASIDE: rules and what to expect -->
+  <aside>
+    <div class="panel-s">
+      <h3><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>Before you begin</h3>
+      <ol class="tk-rules">
+        <li>A short countdown runs after you press <b>Start task</b>, then the test opens by itself.</li>
+        <li><b>Reading</b> and <b>Writing</b>: the timer starts as soon as the test opens. <b>Listening</b>: the recording starts by itself and the test closes shortly after it ends.</li>
+        <li>Timers cannot be paused. Make sure you are ready.</li>
+        <li>Do not refresh or close the page. Answers are only saved when you submit.</li>
+        <li>When time runs out, your answers are submitted for you.</li>
+        <li>After you submit you cannot change your answers. A submitted task can only be retaken if your tutor reopens it.</li>
+      </ol>
+    </div>
+    <div class="panel-s">
+      <h3><svg class="i" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10c1 1 1 2 1 3h6c0-1 0-2 1-3a6 6 0 0 0-4-10z"/></svg>What to expect</h3>
+      <details class="tk-more"><summary>Listening <small>about 30 min</small></summary><p>4 sections, 40 questions. Use headphones and check your volume during the countdown. The recording cannot be paused or replayed. Write answers as you listen and check your spelling.</p></details>
+      <details class="tk-more"><summary>Reading <small>60 min</small></summary><p>3 passages, 40 questions. Spend about 20 minutes on each passage. Answer every question: a wrong answer does not lose marks.</p></details>
+      <details class="tk-more"><summary>Writing <small>60 min</small></summary><p>Task 1 (150 words) and Task 2 (250 words). Task 2 carries more marks, so spend about 40 minutes on it. Plan briefly and leave a minute to check your work.</p></details>
+      <details class="tk-more"><summary>Speaking <small>11–14 min</small></summary><p>3 parts. Find a quiet place and answer out loud. In Part 2 you get about one minute to prepare. Speak naturally and extend your answers with reasons and examples.</p></details>
+    </div>
+  </aside>
+
+</div>
+
+<!-- THE PRACTICE SCREEN ITSELF  (countdown, exam screen, "submitted") -->
+<div id="app" hidden></div>
+
+<footer class="sitefoot">
+  <div class="wrap">UPSEAS CONSULTANTS · <i>paving your path to success</i></div>
+</footer>
+
+</div>
+<script src="common.js"></script>
+<script src="shell.js"></script>
+<script src="tasks.js"></script>
+<script src="practice.js"></script>
+</body>
+</html>
