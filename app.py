@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
 
-import marking
 import psycopg
 from dotenv import load_dotenv
 from psycopg.rows import dict_row
@@ -36,6 +35,8 @@ def cms_listed(key):
 
 app = Flask(__name__, static_folder=None)
 app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)  # set SECRET_KEY, or sessions reset on restart
+if not os.environ.get("SECRET_KEY"):
+    print("WARNING: SECRET_KEY is not set. With more than one worker, students will be logged out at random.", flush=True)
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
@@ -86,7 +87,7 @@ if R2_OK:
         config=Config(signature_version="s3v4"),
     )
 
-KEY_RE = re.compile(r"^[A-Za-z0-9_\-./]{1,200}$")
+KEY_RE = re.compile(r"^[A-Za-z0-9_\-./()]{1,200}$")
 
 
 def valid_key(key):
@@ -163,12 +164,197 @@ def cached_get(key):
     return data
 
 
+DIR_CACHE = {}  # folder -> (loaded at, [keys]) ; per worker, 15 s
+
+
+def store_dir_keys(folder):
+    """Keys directly inside one folder of the bucket."""
+    hit = DIR_CACHE.get(folder)
+    if hit and time.time() - hit[0] < 15:
+        return hit[1]
+    keys = []
+    if R2_OK:
+        token = None
+        while True:
+            kw = {"Bucket": BUCKET, "Prefix": PREFIX + folder + "/", "Delimiter": "/", "MaxKeys": 1000}
+            if token:
+                kw["ContinuationToken"] = token
+            r = s3.list_objects_v2(**kw)
+            for o in r.get("Contents", []):
+                k = o["Key"][len(PREFIX):]
+                if k and not k.endswith("/"):
+                    keys.append(k)
+            if not r.get("IsTruncated"):
+                break
+            token = r["NextContinuationToken"]
+    else:
+        d = _local_path(folder)
+        if d and d.is_dir():
+            keys = [p.relative_to(LOCAL_DIR).as_posix() for p in d.iterdir() if p.is_file()]
+    DIR_CACHE[folder] = (time.time(), keys)
+    return keys
+
+
+def resolve_key(key):
+    """R2 keys are case-sensitive: find Questions.json when the code asks for questions.json (same folder, any capitalisation of the file name)."""
+    folder, _, base = key.rpartition("/")
+    if not folder:
+        return key
+    keys = store_dir_keys(folder)
+    if key in keys:
+        return key
+    return next((k for k in keys if k.rsplit("/", 1)[-1].lower() == base.lower()), None)
+
+
+# ---------------------------------------------------------------- answer keys and marking
+# One JSON per test holds passages/sections, questions AND answers, e.g. reading/reading-19-test1.json:
+#   {"layout":"reading","time":3600,"passages":[{"id":"p1","label":"Passage 1","title":"...","paragraphs":[...],
+#     "heading":"Questions 1-5","questions":[{"id":"q1","type":"tfng","text":"...","answer":"NOT GIVEN"}, ...]}]}
+# Answer keys ("answer", "accept", "explanation") are removed before a student is sent the file.
+#   text : "answer": "library"  or  ["colour","color"]      mcq : "answer": "B"
+#   map  : "answer": "C"                                    tfng: "answer": "TRUE" | "FALSE" | "NOT GIVEN" (YES/NO also fine)
+ANSWER_KEYS = {"answer", "accept", "explanation"}
+SECTION_LISTS = ("passages", "sections", "tasks", "parts")
+TFNG = {"true": "true", "yes": "true", "false": "false", "no": "false", "not given": "not given", "ng": "not given"}
+BAND_TABLES = {   # 40-question tests only (Academic Reading, Listening)
+    "reading":   [(39, 9), (37, 8.5), (35, 8), (33, 7.5), (30, 7), (27, 6.5), (23, 6), (19, 5.5), (15, 5), (13, 4.5), (10, 4)],
+    "listening": [(39, 9), (37, 8.5), (35, 8), (32, 7.5), (30, 7), (26, 6.5), (23, 6), (18, 5.5), (16, 5), (13, 4.5), (10, 4)],
+}
+
+
+def strip_answers(node):
+    if isinstance(node, dict):
+        return {k: strip_answers(v) for k, v in node.items() if k not in ANSWER_KEYS}
+    if isinstance(node, list):
+        return [strip_answers(v) for v in node]
+    return node
+
+
+def sibling(key, name):
+    """A file in the same R2 folder as `key`."""
+    return key.rsplit("/", 1)[0] + "/" + name if "/" in key else name
+
+
+def _twin(file_key, plain, legacy_word):
+    base = file_key.rsplit("/", 1)[-1]
+    return sibling(file_key, re.sub("passages", legacy_word, base, flags=re.I) if re.search("passages", base, re.I) else plain)
+
+
+def _found(guess):
+    try:
+        return resolve_key(guess) or guess
+    except Exception:
+        app.logger.exception("folder listing failed")
+        return guess
+
+
+def questions_key(file_key):
+    """Folder layout: reading/passage1(19)/Passage.json -> Questions.json beside it (any capitalisation).
+    Older layout: reading/x-passages.json -> reading/x-questions.json."""
+    return _found(_twin(file_key, "questions.json", "questions"))
+
+
+def answers_key(file_key):
+    return _found(_twin(file_key, "answers.json", "answers"))
+
+
+def answer_map(raw):
+    """answers.json as {question id or number: answer}. Accepts {"q1": "x"}, {"answers": {...}} or [{"id": "q1", "answer": "x"}]."""
+    d = json.loads(raw)
+    if isinstance(d, dict) and isinstance(d.get("answers"), (dict, list)):
+        d = d["answers"]
+    if isinstance(d, list):
+        return {str(x.get("id")): x.get("answer") for x in d if isinstance(x, dict) and "id" in x}
+    if isinstance(d, dict):
+        return {str(k): (v.get("answer") if isinstance(v, dict) else v) for k, v in d.items()}
+    return {}
+
+
+def quiz_questions(file_key):
+    """The test's questions with their answer keys, in the order the exam screen numbers them.
+    Questions come from the assigned file itself, or from questions.json beside it; answers from "answer" on the
+    question, or from answers.json beside it."""
+    raw = cached_get(file_key)
+    if raw is None:
+        return []
+    main = json.loads(raw)
+    sections = next((main[k] for k in SECTION_LISTS if isinstance(main.get(k), list)), [])
+    qs = []
+    if any(isinstance(s, dict) and s.get("questions") for s in sections):
+        for s in sections:
+            qs += s.get("questions") or []
+    else:
+        raw2 = cached_get(questions_key(file_key))
+        sets = (json.loads(raw2).get("sets") or []) if raw2 else []
+        for p in sections:
+            for s in sets:
+                if s.get("passage") == p.get("id"):
+                    qs += s.get("questions") or []
+    qs = [q for q in qs if isinstance(q, dict) and q.get("type") not in ("figure", "group")]
+    if any(q.get("answer") in (None, "", []) for q in qs):
+        raw3 = cached_get(answers_key(file_key))
+        amap = answer_map(raw3) if raw3 else {}
+        for n, q in enumerate(qs, 1):
+            if q.get("answer") in (None, "", []):
+                q["answer"] = amap.get(str(q.get("id")), amap.get(str(n)))
+    return qs
+
+
+def _norm(s):
+    return re.sub(r"\s+", " ", str(s).strip().lower()).strip(" .,;:!")
+
+
+def mark_answers(questions, answers, review):
+    """Compare the student's answers with the keys. Returns None when the test has no answer keys."""
+    shown = {i.get("id"): i.get("a", "") for sec in review if isinstance(sec, dict)
+             for i in (sec.get("items") or []) if isinstance(i, dict)}
+    items, right = [], 0
+    for n, q in enumerate(questions, 1):
+        key = q.get("answer")
+        if key in (None, "", []):
+            continue
+        qid, typ, given = q.get("id"), q.get("type"), answers.get(q.get("id"))
+        if typ == "mcq":
+            exp = key if isinstance(key, int) else ord(str(key).strip().upper()[:1]) - 65
+            ok = isinstance(given, int) and not isinstance(given, bool) and given == exp
+            expected = chr(65 + exp) if 0 <= exp < 26 else str(key)
+        elif typ == "tfng":
+            g = _norm(shown.get(qid, ""))
+            ok = bool(g) and TFNG.get(g, g) == TFNG.get(_norm(key), _norm(key))
+            expected = str(key).upper()
+        else:                                      # text, map (letter), anything else
+            options = key if isinstance(key, list) else [key]
+            ok = given is not None and _norm(given) in {_norm(o) for o in options}
+            expected = " / ".join(str(o) for o in options)
+        right += ok
+        items.append({"id": qid, "n": n, "correct": bool(ok), "given": shown.get(qid) or ("" if given is None else str(given)), "expected": expected})
+    return {"correct": right, "total": len(items), "items": items} if items else None
+
+
+def band_for(skill, correct, total):
+    if total != 40 or skill not in BAND_TABLES:
+        return None
+    return next((b for need, b in BAND_TABLES[skill] if correct >= need), None)
+
+
 # ---------------------------------------------------------------- auth helpers
+STATE_TTL = int(os.environ.get("STATE_CACHE_SECONDS", "10"))
+STATE_CACHE = [0.0, None]   # [loaded at, parsed admin-data.json], per worker
+
+
+def load_state():
+    if STATE_CACHE[1] is not None and time.time() - STATE_CACHE[0] < STATE_TTL:
+        return STATE_CACHE[1]
+    raw = store_get(STATE_KEY)
+    data = json.loads(raw) if raw else {}
+    STATE_CACHE[0], STATE_CACHE[1] = time.time(), data
+    return data
+
+
 def assigned_tasks(user):
     """Tasks the admin has assigned to this user (matched by email). Never exposes other students."""
     try:
-        raw = store_get(STATE_KEY)
-        data = json.loads(raw) if raw else {}
+        data = load_state()
     except Exception:
         app.logger.exception("could not read admin data")
         return []
@@ -179,13 +365,22 @@ def assigned_tasks(user):
         return []
     return [t for t in data.get("tasks", []) if me["id"] in t.get("assignedTo", [])]
 
-FAILS = {}  # ip -> list of failure timestamps (in memory)
+FAILS = {}  # (ip, login) -> failure timestamps, and (ip, None) -> every failure from that IP (in memory, per worker)
+LOGIN_TRIES = int(os.environ.get("LOGIN_TRIES", "5"))             # wrong passwords per account, per 5 minutes
+LOGIN_TRIES_IP = int(os.environ.get("LOGIN_TRIES_IP", "150"))     # all accounts together from one IP (a classroom shares one)
 
 
-def too_many(ip):
+def too_many(ip, who):
     now = time.time()
-    FAILS[ip] = [t for t in FAILS.get(ip, []) if now - t < 300]
-    return len(FAILS[ip]) >= 5
+    for k in ((ip, who), (ip, None)):
+        FAILS[k] = [t for t in FAILS.get(k, []) if now - t < 300]
+    return len(FAILS[(ip, who)]) >= LOGIN_TRIES or len(FAILS[(ip, None)]) >= LOGIN_TRIES_IP
+
+
+def note_fail(ip, who):
+    now = time.time()
+    FAILS.setdefault((ip, who), []).append(now)
+    FAILS.setdefault((ip, None), []).append(now)
 
 
 def landing_for(user):
@@ -221,10 +416,11 @@ def headers(resp):
 @app.post("/api/login")
 def api_login():
     ip = request.headers.get("CF-Connecting-IP") or request.remote_addr or "?"
-    if too_many(ip):
-        return jsonify(error="too_many"), 429
     d = request.get_json(silent=True) or {}
     login = clean_login(str(d.get("email") or d.get("login") or "").strip()[:254])   # email or student ID
+    who = login.lower()
+    if too_many(ip, who):
+        return jsonify(error="too_many"), 429
     password = str(d.get("password", ""))
     if not login or not password or len(password) > 1024:
         return jsonify(error="invalid"), 401
@@ -235,8 +431,9 @@ def api_login():
         if not user:  # burn the same bcrypt time so unknown accounts can't be told apart by speed
             conn.execute("SELECT crypt(%s, gen_salt('bf', 12))", (password,))
     if not user:
-        FAILS.setdefault(ip, []).append(time.time())
+        note_fail(ip, who)
         return jsonify(error="invalid"), 401
+    FAILS.pop((ip, who), None)                 # a correct login clears that account's earlier typos
     session.clear()
     session.permanent = True
     session["user"] = {"id": str(user["id"]), "email": user["email"], "code": user["student_code"],
@@ -266,90 +463,6 @@ def sub_key(student_id, ref):
     return f"submissions/{student_id}/{ref}.json"
 
 
-# ---------------------------------------------------------------- marking
-SHOW_CORRECT = True   # True: a student's result shows the right answer next to each mistake
-
-
-def band_scale():
-    """Optional custom score->band table in R2 (data/band-scale.json); otherwise the official tables in marking.py."""
-    try:
-        raw = cached_get("data/band-scale.json")
-        return json.loads(raw) if raw else None
-    except Exception:
-        app.logger.exception("band-scale.json unreadable, using the default tables")
-        return None
-
-
-def answer_key_names(task):
-    """Where a task's answer key is looked for in R2, first match wins. Keys live in answers/listening/ and answers/reading/
-    (answers/<skill>/), named like the test file:
-         test file  listening_19_test1.json  ->  answers/listening/listening_19_test1.json
-                                                 answers/listening/listening_19_test1-answers.json
-                                                 answers/listening_19_test1.json                (no skill folder)
-         reading: the test file is the PASSAGE file (passage.json or reading-passages.json); its questions are found by name
-         (questions.json / reading-questions.json) and its answers are looked for under the passage, questions and answers names:
-         answers/reading/passage.json, answers/reading/questions.json, answers/reading/answers.json, answers/reading/reading-answers.json ..."""
-    f = task.get("file") or ""
-    if not f:
-        return []
-    skill = task.get("skill") if task.get("skill") in ("listening", "reading") else ""
-    variants = [f]
-    if re.search("passages?", f, re.I):   # passage.json / reading-passages.json  ->  questions.json / reading-questions.json
-        variants += [re.sub("passages?", "questions", f, flags=re.I), re.sub("passages?", "answers", f, flags=re.I)]
-    names = []
-    for v in variants:
-        base = v.rsplit("/", 1)[-1]
-        alt = re.sub(r"\.json$", "-answers.json", base, flags=re.I)
-        if skill:
-            names += [f"answers/{skill}/{base}", f"answers/{skill}/{alt}"]
-        names += ["answers/" + v, "answers/" + base, "answers/" + alt]
-    names.append(re.sub(r"\.json$", "-answers.json", f, flags=re.I))   # older layout: next to the test file
-    return [n for n in dict.fromkeys(names) if valid_key(n)]
-
-
-def answer_key_for(task):
-    for k in answer_key_names(task):
-        raw = store_get(k)
-        if raw is not None:
-            return marking.extract_key(json.loads(raw))
-    return None
-
-
-def save_marks(conn, sid, ref, skill, score, total, band, details, released, marked_by):
-    conn.execute(
-        "INSERT INTO submission_marks (student_id, task_ref, skill, score, total, band, details, released, marked_by, marked_at) "
-        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s, now()) "
-        "ON CONFLICT (student_id, task_ref) DO UPDATE SET skill=EXCLUDED.skill, score=EXCLUDED.score, total=EXCLUDED.total, "
-        "band=EXCLUDED.band, details=EXCLUDED.details, released=EXCLUDED.released, marked_by=EXCLUDED.marked_by, marked_at=now()",
-        (sid, ref, skill, score, total, band, Jsonb(details), released, marked_by))
-
-
-def auto_mark(sid, ref, task, answers, review):
-    """Reading / Listening. Returns the summary, or None when there is no answer key (yet) or the skill is not auto-marked."""
-    skill = task.get("skill")
-    if skill not in ("reading", "listening"):
-        return None
-    key = answer_key_for(task)
-    if key is None:
-        return None
-    g = marking.grade(key, answers, review)
-    if not g["total"]:
-        return None
-    band = marking.band_for(skill, g["score"], g["total"], band_scale())
-    with pool.connection() as conn:
-        save_marks(conn, str(sid), ref, skill, g["score"], g["total"], band, {"questions": g["questions"]}, True, None)
-    return {"score": g["score"], "total": g["total"], "band": band}
-
-
-def marks_json(r, for_student=False):
-    d = r["details"] or {}
-    if for_student and not SHOW_CORRECT and "questions" in d:
-        d = {**d, "questions": [{k: v for k, v in q.items() if k != "expected"} for q in d["questions"]]}
-    return {"task": r["task_ref"], "skill": r["skill"], "score": r["score"], "total": r["total"],
-            "band": float(r["band"]) if r["band"] is not None else None, "released": r["released"],
-            "markedAt": r["marked_at"].isoformat() if r["marked_at"] else None, "details": d}
-
-
 @app.get("/api/my/tasks")
 @api_user()
 def api_my_tasks():
@@ -358,16 +471,11 @@ def api_my_tasks():
         done = {r["task_ref"]: r["submitted_at"] for r in conn.execute(
             "SELECT task_ref, submitted_at FROM submission_status WHERE student_id = %s AND status = 'YES'",
             (u["id"],)).fetchall()}
-        marks = {r["task_ref"]: r for r in conn.execute(
-            "SELECT task_ref, score, total, band, released FROM submission_marks WHERE student_id = %s",
-            (u["id"],)).fetchall()}
     tasks = []
     for t in assigned_tasks(u):
         at = done.get(t.get("id"))
         tasks.append({**{k: t.get(k, "") for k in ("id", "title", "skill", "due", "note", "file")},
                       "submitted": t.get("id") in done,
-                      "result": ({"band": float(m["band"]) if m["band"] is not None else None, "score": m["score"], "total": m["total"]}
-                                 if (m := marks.get(t.get("id"))) and m["released"] and t.get("id") in done else None),
                       "submittedAt": at.isoformat() if at else None})
     return jsonify(tasks=tasks)
 
@@ -389,6 +497,13 @@ def api_submit():
         return jsonify(error="bad_payload"), 400
     secs = d.get("secondsLeft")
     secs = secs if isinstance(secs, int) and not isinstance(secs, bool) and 0 <= secs <= 86400 else None
+    try:                                           # marking must never block a submission
+        score = mark_answers(quiz_questions(task.get("file", "")), answers, review)
+        if score:
+            score["band"] = band_for(task.get("skill"), score["correct"], score["total"])
+    except Exception:
+        app.logger.exception("marking failed")
+        score = None
     key = sub_key(u["id"], ref)
     payload = {
         "version": 1,
@@ -399,6 +514,7 @@ def api_submit():
         "auto": bool(d.get("auto")),               # true when the timer ran out
         "answers": answers,                        # raw: {questionId: value}
         "review": review,                          # readable copy for the admin page
+        "score": score,                            # None for writing/speaking or tests without answer keys
     }
     try:
         with pool.connection() as conn:
@@ -416,24 +532,8 @@ def api_submit():
     except Exception:
         app.logger.exception("submission failed")
         return jsonify(error="storage_error"), 502
-    result = None
-    try:                                   # a marking problem must never lose the student's submission
-        result = auto_mark(u["id"], ref, task, answers, review)
-    except Exception:
-        app.logger.exception("auto-marking failed for %s / %s", u["id"], ref)
-    return jsonify(ok=True, result=result), 201
-
-
-@app.get("/api/my/results/<ref>")
-@api_user()
-def api_my_result(ref):
-    """A student's own result, only once it is released."""
-    if not REF_RE.match(ref):
-        return jsonify(error="bad_key"), 400
-    with pool.connection() as conn:
-        r = conn.execute("SELECT * FROM submission_marks WHERE student_id = %s AND task_ref = %s AND released",
-                         (current_user()["id"], ref)).fetchone()
-    return (jsonify(result=marks_json(r, True)) if r else (jsonify(error="not_ready"), 404))
+    summary = {k: score[k] for k in ("correct", "total", "band")} if score else None
+    return jsonify(ok=True, score=summary), 201
 
 
 @app.get("/api/me")
@@ -456,7 +556,7 @@ def data_file(rest):
     elif low.startswith(("quiz/", "notes/")) and not u:  # study content: logged-in users
         abort(401)
     try:
-        data = cached_get(key)
+        data = store_get(key) if low.startswith("admin") else cached_get(key)   # admin data is never cached: a stale copy would overwrite the admin's changes on the next Save
     except Exception:
         app.logger.exception("storage read failed")
         abort(502)
@@ -480,16 +580,22 @@ def content_file(key):
         allowed = set()
         for t in assigned_tasks(u):
             f = t.get("file") or ""
-            allowed |= {f, re.sub("passages", "questions", f, flags=re.I)}
-        if key not in allowed:
+            if f:
+                allowed |= {f.lower(), _twin(f, "questions.json", "questions").lower()}
+        if key.lower() not in allowed:
             abort(403)
     try:
-        data = cached_get(key)
+        data = cached_get(_found(key))
     except Exception:
         app.logger.exception("storage read failed")
         abort(502)
     if data is None:
         abort(404)
+    if u["role"] != "admin":                               # students never receive the answer keys
+        try:
+            data = json.dumps(strip_answers(json.loads(data)), ensure_ascii=False).encode("utf-8")
+        except ValueError:
+            abort(500)
     return Response(data, mimetype="application/json", headers={"Cache-Control": "private, max-age=0, must-revalidate"})
 
 
@@ -605,14 +711,11 @@ def admin_student_submissions(sid):
     """Submission status per task for one student (tasks with no row are 'NO')."""
     with pool.connection() as conn:
         rows = conn.execute(
-            "SELECT s.task_ref, s.status, s.submitted_at, m.skill, m.score, m.total, m.band, m.released "
-            "FROM submission_status s LEFT JOIN submission_marks m ON m.student_id = s.student_id AND m.task_ref = s.task_ref "
-            "WHERE s.student_id = %s ORDER BY s.submitted_at DESC NULLS LAST", (str(sid),)).fetchall()
+            "SELECT task_ref, status, submitted_at FROM submission_status WHERE student_id = %s "
+            "ORDER BY submitted_at DESC NULLS LAST", (str(sid),)).fetchall()
     return jsonify(submissions=[{
         "task": r["task_ref"], "status": r["status"],
-        "submittedAt": r["submitted_at"].isoformat() if r["submitted_at"] else None,
-        "marked": r["band"] is not None, "skill": r["skill"], "score": r["score"], "total": r["total"],
-        "band": float(r["band"]) if r["band"] is not None else None, "released": bool(r["released"])} for r in rows])
+        "submittedAt": r["submitted_at"].isoformat() if r["submitted_at"] else None} for r in rows])
 
 
 @app.get("/api/admin/students/<uuid:sid>/submissions/<ref>")
@@ -649,7 +752,6 @@ def admin_reopen(sid, ref):
                                (str(sid), ref)).fetchone()
             if not row:
                 return jsonify(error="not_found"), 404
-            conn.execute("DELETE FROM submission_marks WHERE student_id = %s AND task_ref = %s", (str(sid), ref))
             old = store_get(sub_key(sid, ref))
             if old is not None:
                 stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -658,82 +760,6 @@ def admin_reopen(sid, ref):
         app.logger.exception("reopen failed")
         return jsonify(error="storage_error"), 502
     return jsonify(ok=True)
-
-
-def load_submission(sid, ref):
-    """The submission JSON from R2, only if the student really submitted. Returns (payload, error_response)."""
-    if not REF_RE.match(ref):
-        return None, (jsonify(error="bad_key"), 400)
-    with pool.connection() as conn:
-        row = conn.execute("SELECT status FROM submission_status WHERE student_id = %s AND task_ref = %s",
-                           (str(sid), ref)).fetchone()
-    if not row or row["status"] != "YES":
-        return None, (jsonify(error="not_submitted"), 404)
-    try:
-        raw = store_get(sub_key(sid, ref))
-    except Exception:
-        app.logger.exception("storage read failed")
-        return None, (jsonify(error="storage_error"), 502)
-    if raw is None:
-        return None, (jsonify(error="file_missing"), 404)
-    return json.loads(raw), None
-
-
-@app.get("/api/admin/students/<uuid:sid>/submissions/<ref>/marks")
-@api_user("admin")
-def admin_marks(sid, ref):
-    if not REF_RE.match(ref):
-        return jsonify(error="bad_key"), 400
-    with pool.connection() as conn:
-        r = conn.execute("SELECT * FROM submission_marks WHERE student_id = %s AND task_ref = %s", (str(sid), ref)).fetchone()
-    return jsonify(marks=marks_json(r) if r else None)
-
-
-@app.post("/api/admin/students/<uuid:sid>/submissions/<ref>/mark")
-@api_user("admin")
-def admin_remark(sid, ref):
-    """Reading / Listening: (re)mark from the answer key, e.g. after the key was added or corrected."""
-    payload, err = load_submission(sid, ref)
-    if err:
-        return err
-    task = payload.get("task") or {}
-    if task.get("skill") not in ("reading", "listening"):
-        return jsonify(error="not_auto"), 400
-    try:
-        res = auto_mark(sid, ref, task, payload.get("answers") or {}, payload.get("review") or [])
-    except Exception:
-        app.logger.exception("re-mark failed")
-        return jsonify(error="mark_failed"), 500
-    if res is None:
-        return jsonify(error="no_answer_key", keys=answer_key_names(task)), 404
-    with pool.connection() as conn:
-        r = conn.execute("SELECT * FROM submission_marks WHERE student_id = %s AND task_ref = %s", (str(sid), ref)).fetchone()
-    return jsonify(ok=True, marks=marks_json(r))
-
-
-@app.post("/api/admin/students/<uuid:sid>/submissions/<ref>/writing")
-@api_user("admin")
-def admin_mark_writing(sid, ref):
-    """Tutor gives each writing task a band for the 4 criteria; the bands are worked out here. release=true shows it to the student."""
-    payload, err = load_submission(sid, ref)
-    if err:
-        return err
-    task = payload.get("task") or {}
-    if task.get("skill") != "writing":
-        return jsonify(error="not_writing"), 400
-    d = request.get_json(silent=True) or {}
-    labels = [str(s.get("label") or f"Task {i + 1}") for i, s in enumerate(payload.get("review") or [])]
-    try:
-        overall, tasks = marking.writing_result(d.get("tasks"), labels)
-    except ValueError as e:
-        return jsonify(error="bad_marks", field=str(e)), 400
-    feedback = str(d.get("feedback") or "").strip()[:5000]
-    release = bool(d.get("release"))
-    with pool.connection() as conn:
-        save_marks(conn, str(sid), ref, "writing", None, None, overall,
-                   {"tasks": tasks, "feedback": feedback}, release, current_user()["id"])
-        r = conn.execute("SELECT * FROM submission_marks WHERE student_id = %s AND task_ref = %s", (str(sid), ref)).fetchone()
-    return jsonify(ok=True, marks=marks_json(r))
 
 
 # ---------------------------------------------------------------- admin content manager API
@@ -781,6 +807,8 @@ def admin_write(key):
         app.logger.exception("storage write failed")
         return jsonify(error="storage_error"), 502
     CACHE.pop(key, None)
+    if key == STATE_KEY:
+        STATE_CACHE[0] = 0.0
     return jsonify(ok=True)
 
 

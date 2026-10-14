@@ -64,11 +64,13 @@ function audioStarted(){   // listening timer starts the first time the student 
 async function loadQuiz(t){
   const main=await getContent(t.file);
   if(main.layout){if(main.layout==='listening')main.time=await listeningTime(main);return main}
-  if(main.passages&&/passages?/i.test(t.file)){   // one passage file; its questions file has the same name with passage(s) -> questions
-    const qd=await getContent(t.file.replace(/passages?/i,'questions'));
+  if(main.passages){
+    const base=t.file.split('/').pop(),qf=/passages/i.test(base)?t.file.replace(/[^\/]+$/,base.replace(/passages/i,'questions')):t.file.replace(/[^\/]+$/,'questions.json');
+    const qd=await getContent(qf);
     return {layout:'reading',time:(UI.defaultTime||{})[t.skill||'reading']||3600,passages:main.passages.map(p=>{
-      const s=(qd.sets||[]).find(x=>x.passage===p.id)||{heading:'',questions:[]};
-      return {label:p.label,title:p.title,paragraphs:p.paragraphs,heading:s.heading,questions:s.questions}})}}
+      const ss=(qd.sets||[]).filter(x=>x.passage===p.id),grouped=ss.length>1||ss.some(s=>s.instructions||s.title),qs=[];
+      ss.forEach(s=>{if(grouped)qs.push({type:'group',heading:s.heading,title:s.title,instructions:s.instructions});qs.push(...(s.questions||[]))});
+      return {label:p.label,title:p.title,paragraphs:p.paragraphs,heading:grouped||!ss.length?'':ss[0].heading,questions:qs}})}}
   throw new Error('format')}
 function proceed(){
   const t=(S.tasks||[]).find(x=>x.id===S.sel);if(!t)return;
@@ -79,11 +81,10 @@ async function openTest(){
   stopAudio();
   try{S.d=await S.load}catch(e){S.phase='intro';S.err=QI.openError;return render()}
   S.phase='test';S.i=0;S.ans={};S.rec=false;S.over=false;S.msg='';S.sending=false;S.started=false;S.left=S.d.time||(UI.defaultTime||{})[S.task.skill]||3600;S.autoBlocked=false;S.flag={};numbering();render();if(S.d.layout==='listening')startAudio();else runTimer()}
+const isQ=q=>q.type!=='figure'&&q.type!=='group';   // figures and group headings are not numbered questions
 const hasAns=id=>{const a=S.ans[id];return a!==undefined&&a!==null&&(typeof a!=='string'||a.trim()!=='')};
-const rich=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');   // **bold** in headings, notes and instructions
-const NOQ=q=>q.type==='figure'||q.type==='heading'||q.type==='note';   // items that are shown but are not questions
 function numbering(){S.num={};S.qids=[];S.qmeta=[];let n=0;
-  items().forEach((x,i)=>(x.questions||[]).forEach(q=>{if(NOQ(q))return;S.num[q.id]=++n;S.qids.push(q.id);S.qmeta.push({id:q.id,n,sec:i})}));
+  items().forEach((x,i)=>(x.questions||[]).forEach(q=>{if(!isQ(q))return;S.num[q.id]=++n;S.qids.push(q.id);S.qmeta.push({id:q.id,n,sec:i})}));
   if(S.d.layout==='writing')items().forEach((x,i)=>S.qmeta.push({id:'essay'+i,n:i+1,sec:i,essay:true}))}   // writing: one box per task
 // The row of boxes at the bottom: one per question, filled in as soon as it is answered
 function chkStrip(){
@@ -110,10 +111,9 @@ function go(d){S.i=Math.min(Math.max(S.i+d,0),items().length-1);S.rec=false;rend
 function fsize(d){S.fs=Math.min(1.4,Math.max(.85,Math.round((S.fs+d)*10)/10));const a=$('app');if(a)a.style.setProperty('--rs',S.fs)}
 function toggleFlag(){S.flag[S.i]=!S.flag[S.i];const b=$('flag');if(b){b.classList.toggle('on',S.flag[S.i]);b.textContent=S.flag[S.i]?'\u2691 Flagged for review':'\u2690 Flag for review'}const t=$('tab'+S.i);if(t)t.classList.toggle('flag',!!S.flag[S.i])}
 function tabs(){const it=items();if(it.length<2)return '';return `<div class="tabs" role="group">${it.map((x,i)=>`<button class="tab${i===S.i?' active':''}${S.flag[i]?' flag':''}" id="tab${i}" aria-pressed="${i===S.i}" onclick="S.i=${i};S.rec=false;render()">${esc(x.label)}</button>`).join('')}</div>`}
-const qrange=x=>{const n=(x.questions||[]).filter(q=>!NOQ(q)).map(q=>S.num[q.id]);return n.length?(n.length===1?'Question '+n[0]:'Questions '+n[0]+'\u2013'+n[n.length-1]):''};
+const qrange=x=>{const n=(x.questions||[]).filter(isQ).map(q=>S.num[q.id]);return n.length?(n.length===1?'Question '+n[0]:'Questions '+n[0]+'\u2013'+n[n.length-1]):''};
 function qhtml(q){
-  if(q.type==='heading')return `<h3 class="qsub">${rich(q.text||'')}</h3>`;
-  if(q.type==='note')return `<p class="qnote">${rich(q.text||'')}</p>`;
+  if(q.type==='group')return `<div class="qgroup">${q.heading?`<h2 class="qh">${esc(q.heading)}</h2>`:''}${q.title?`<h3 style="margin:10px 0;text-align:center">${esc(q.title)}</h3>`:''}${q.instructions?`<p class="qintro">${esc(q.instructions)}</p>`:''}</div>`;
   if(q.type==='figure')return `<figure class="qfig"><img src="${esc(q.image)}" alt="${esc(q.alt||'')}">${q.caption?`<figcaption>${esc(q.caption)}</figcaption>`:''}</figure>`;
   const head=`<div class="qhead"><span class="num">${S.num[q.id]}</span><div class="qtext">${esc(q.text)}</div></div>`;
   let ans;
@@ -122,7 +122,7 @@ function qhtml(q){
   else if(q.type==='tfng')ans=`<div class="tf">${UI.tfng.map((o,i)=>`<button class="opt" aria-pressed="${S.ans[q.id]===i}" onclick="pick('${q.id}',${i})"><i></i>${esc(o)}</button>`).join('')}</div>`;
   else ans=`<input type="text" aria-label="${esc(UI.answerLabel)}" value="${esc(S.ans[q.id]||'')}" oninput="setAns('${q.id}',this.value)">`;
   return `<div class="q${q.type==='map'?' mapq':''}" data-q="${q.id}">${head}<div class="answer">${ans}</div></div>`}
-const qpanel=(x,heading)=>`<section class="panel"><div class="questions">${tabs()}${heading&&x.heading?`<h2 class="qh">${esc(x.heading)}</h2>`:''}${x.instructions?`<p class="qintro">${rich(x.instructions)}</p>`:''}${x.questions.map(qhtml).join('')}</div></section>`;
+const qpanel=(x,heading)=>`<section class="panel"><div class="questions">${tabs()}${heading&&x.heading?`<h2 class="qh">${esc(x.heading)}</h2>`:''}${x.instructions?`<p class="qintro">${esc(x.instructions)}</p>`:''}${x.questions.map(qhtml).join('')}</div></section>`;
 const words=()=>{const t=(S.ans['essay'+S.i]||'').trim();return t?t.split(/\s+/).length:0};
 function upd(){$('wcount').textContent=tpl(UI.wordsOf,{n:words(),min:items()[S.i].minWords})}
 function audioCard(i){return `<div class="audio"><div class="audio-top"><span class="beat" aria-hidden="true">\u266a</span><b>Listening recording</b><span class="astatus" id="astatus">Starting the recording\u2026</span></div><div class="wave" id="wave" aria-hidden="true">${Array.from({length:70},(_,k)=>`<i style="height:${10+Math.round(Math.abs(Math.sin(k*.72))*30)}px"></i>`).join('')}</div><label class="vol">Volume <input type="range" min="0" max="1" step="0.05" value="${S.vol??1}" oninput="setVol(this.value)" aria-label="Volume"></label><button class="btn" id="aplay" onclick="audPlay(${i})" hidden>Start recording</button><p class="hint hidden" id="amiss">${esc(UI.audioMissing)}</p></div>`}
@@ -135,8 +135,8 @@ const L={
   <section class="panel"><div class="head"><strong>${esc(UI.respond)}</strong></div><div class="content center"><button class="rec" aria-pressed="${S.rec}" onclick="S.rec=!S.rec;render()">${esc(S.rec?UI.stop:UI.record)}</button><p class="hint">${esc(S.rec?UI.recording:UI.tapRecord)}</p><div style="display:flex;gap:10px;justify-content:center"><button class="btn ghost">${esc(UI.playback)}</button><button class="btn">${esc(UI.feedback)}</button></div></div></section></main>`}};
 const taskCard=t=>{const d=TK.due(t),st=TK.state(t);
   return `<article class="tk-card${S.hl===t.id?' hl':''}" id="t-${esc(t.id)}"><span class="ico">${TK.icon(t.skill)}</span>
-    <div class="tk-main"><h3>${esc(t.title)}</h3><p class="tk-meta"><span>${esc(sk(t.skill))}</span><span>${esc(TK.time(t.skill))}</span>${d.label?`<span class="${d.overdue&&!t.submitted?'late':''}">${esc(QI.due)} ${esc(d.label)}</span>`:''}${t.submitted&&t.submittedAt?`<span>Submitted ${esc(TK.day(t.submittedAt))}</span>`:''}${t.result?`<span class="rchip">Band ${bandTxt(t.result.band)}${t.result.total?' \u00b7 '+t.result.score+'/'+t.result.total:''}</span>`:t.submitted?'<span>Awaiting marking</span>':''}</p>${t.note?`<p class="tk-note">${esc(t.note)}</p>`:''}</div>
-    <div class="tk-act"><span class="pill ${st}">${TK.stateLabel[st]}</span>${t.submitted?(t.result?`<button class="btn" data-result="${esc(t.id)}">View result</button>`:'<button class="btn ghost" disabled>Submitted</button>'):`<button class="btn" data-start="${esc(t.id)}">Start task</button>`}</div></article>`};
+    <div class="tk-main"><h3>${esc(t.title)}</h3><p class="tk-meta"><span>${esc(sk(t.skill))}</span><span>${esc(TK.time(t.skill))}</span>${d.label?`<span class="${d.overdue&&!t.submitted?'late':''}">${esc(QI.due)} ${esc(d.label)}</span>`:''}${t.submitted&&t.submittedAt?`<span>Submitted ${esc(TK.day(t.submittedAt))}</span>`:''}</p>${t.note?`<p class="tk-note">${esc(t.note)}</p>`:''}</div>
+    <div class="tk-act"><span class="pill ${st}">${TK.stateLabel[st]}</span>${t.submitted?'<button class="btn ghost" disabled>Submitted</button>':`<button class="btn" data-start="${esc(t.id)}">Start task</button>`}</div></article>`};
 function renderList(){
   $('intro-msg').textContent=S.err;
   const T=S.tasks,box=$('tasks');
@@ -167,7 +167,7 @@ function readable(q){const a=S.ans[q.id];if(a===undefined||a===null||a==='')retu
   return String(a)}
 function buildReview(){return items().map((x,i)=>{
   if(S.d.layout==='writing'){const t=S.ans['essay'+i]||'';return {label:x.label,heading:x.prompt||'',text:t,words:t.trim()?t.trim().split(/\s+/).length:0}}
-  return {label:x.label||'',heading:x.heading||x.title||'',items:(x.questions||[]).filter(q=>!NOQ(q)).map(q=>({id:q.id,q:q.text,a:readable(q)}))}})}
+  return {label:x.label||'',heading:x.heading||x.title||'',items:(x.questions||[]).filter(isQ).map(q=>({id:q.id,q:q.text,a:readable(q)}))}})}
 function unanswered(){return buildReview().reduce((n,sec)=>n+(sec.items?sec.items.filter(i=>!i.a).length:(sec.text.trim()?0:1)),0)}
 async function submitAll(auto){
   if(S.sending||S.phase!=='test')return;
@@ -179,36 +179,20 @@ async function submitAll(auto){
       body:JSON.stringify({task:S.task.id,answers:S.ans,review:buildReview(),secondsLeft:S.left,auto:!!auto})});
     const out=await r.json().catch(()=>({}));
     if(!r.ok&&out.error!=='already_submitted')throw new Error(out.error||r.status);
-    S.phase='done';stopAudio();S.res=null;S.resWait=!!out.result&&S.task.skill!=='writing';if(out.result)loadResult(S.task.id)}
-  catch(e){S.msg='Could not submit. Check your connection and press Submit again.';if(S.left>0)runTimer()}
+    S.score=out.score||null;S.phase='done';stopAudio()}
+  catch(e){S.msg=S.over?'Could not send yet. Retrying automatically…':'Could not submit. Check your connection and press Submit again.';if(S.over)setTimeout(()=>submitAll(true),4000);else if(S.left>0)runTimer()}
   S.sending=false;render()}
-const bandTxt=b=>b==null?'\u2014':Number(b).toFixed(1);
-function resultBlock(r){
-  const big=`<div class="rband"><b>${bandTxt(r.band)}</b><small>Band score</small></div>`,d=r.details||{};
-  if(r.skill==='writing')return `<div class="rhead">${big}</div>`+(d.tasks||[]).map(t=>`<div class="note"><b>${esc(t.label)}</b> \u00b7 Band ${bandTxt(t.band)}<small>Task response ${bandTxt(t.ta)} \u00b7 Coherence and cohesion ${bandTxt(t.cc)} \u00b7 Lexical resource ${bandTxt(t.lr)} \u00b7 Grammar ${bandTxt(t.gra)}</small></div>`).join('')+(d.feedback?`<h3>Tutor feedback</h3><p class="serif" style="white-space:pre-wrap">${esc(d.feedback)}</p>`:'');
-  const qs=d.questions||[];
-  return `<div class="rhead">${big}<div class="rband"><b>${r.score} / ${r.total}</b><small>correct answers</small></div></div><ul class="rlist">${qs.map(q=>`<li class="${q.correct?'ok':'bad'}"><span class="rm">${q.correct?'\u2713':'\u2717'}</span><b>${q.n??''}</b><span>${q.given?esc(q.given):'<i>no answer</i>'}</span>${!q.correct&&q.expected?`<span class="rexp">Correct: ${esc(q.expected)}</span>`:''}</li>`).join('')}</ul>`}
-async function loadResult(ref){
-  try{const r=await fetch('/api/my/results/'+encodeURIComponent(ref));if(!r.ok)throw 0;S.res=(await r.json()).result}catch(e){S.res=null}
-  S.resWait=false;if(S.phase==='done'||S.phase==='result')render()}
-function viewResult(id){const t=(S.tasks||[]).find(x=>x.id===id);if(!t)return;S.task=t;S.res=null;S.resWait=true;S.phase='result';render();loadResult(id)}
-function resultBody(){
-  if(S.res)return resultBlock(S.res);
-  if(S.resWait)return '<p class="hint">Marking your answers\u2026</p>';
-  if(S.task.skill==='writing')return '<p class="serif">Your tutor will mark your writing. Your band score will appear next to this task once it has been released.</p>';
-  return '<p class="serif">Your answers have been sent. Your result will appear next to the task once it has been marked.</p>'}
-function doneView(){return `<section class="result"><p class="hint">${esc(S.task.title)}</p><h1>Answers submitted</h1>${resultBody()}<button class="btn" onclick="again()">Back to my tasks</button></section>`}
-function resultView(){return `<section class="result"><p class="hint">${esc(S.task.title)}</p><h1>Your result</h1>${resultBody()}<button class="btn" onclick="again()">Back to my tasks</button></section>`}
-function again(){S.phase='intro';S.sel='';S.view='todo';S.hl='';S.d=null;S.msg='';S.over=false;S.flag={};S.res=null;S.tasks=null;render();loadTasks()}
+function doneView(){const sc=S.score;return `<section class="count"><p class="hint">${esc(S.task.title)}</p><h1>Answers submitted</h1>${sc?`<p class="serif"><b>Score: ${sc.correct} / ${sc.total}</b>${sc.band!=null?` · Band ${Number(sc.band).toFixed(1)}`:''}</p>`:''}<p class="serif">Your answers have been sent to your tutor.</p><button class="btn" onclick="again()">Back to my tasks</button></section>`}
+function again(){S.phase='intro';S.sel='';S.view='todo';S.hl='';S.d=null;S.score=null;S.msg='';S.over=false;S.flag={};S.tasks=null;render();loadTasks()}
 function render(){
   const intro=S.phase==='intro';
   $('intro').hidden=!intro;$('app').hidden=intro;
   document.body.classList.toggle('in-exam',S.phase==='test');
   if(intro){renderList();return}
   $('app').className=S.phase==='test'?'exam':'';$('app').style.setProperty('--rs',S.fs);
-  $('app').innerHTML=({count:countView,test:testView,done:doneView,result:resultView})[S.phase]();
+  $('app').innerHTML=({count:countView,test:testView,done:doneView})[S.phase]();
   audUi();prog()}
-$('tasks').onclick=e=>{const b=e.target.closest('[data-start]');if(b)startTask(b.dataset.start);const r=e.target.closest('[data-result]');if(r)viewResult(r.dataset.result)};
+$('tasks').onclick=e=>{const b=e.target.closest('[data-start]');if(b)startTask(b.dataset.start)};
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{S.view=b.dataset.view;renderList()});
 document.querySelectorAll('[data-skill]').forEach(b=>b.onclick=()=>{S.skillF=b.dataset.skill;renderList()});
 (async()=>{
