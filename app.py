@@ -87,7 +87,7 @@ if R2_OK:
         config=Config(signature_version="s3v4"),
     )
 
-KEY_RE = re.compile(r"^[A-Za-z0-9_\-./()]{1,200}$")
+KEY_RE = re.compile(r"^[A-Za-z0-9_\-./() ]{1,200}$")
 
 
 def valid_key(key):
@@ -474,10 +474,37 @@ def api_my_tasks():
     tasks = []
     for t in assigned_tasks(u):
         at = done.get(t.get("id"))
-        tasks.append({**{k: t.get(k, "") for k in ("id", "title", "skill", "due", "note", "file")},
+        tasks.append({**{k: t.get(k, "") for k in ("id", "title", "skill", "note", "file")},
                       "submitted": t.get("id") in done,
                       "submittedAt": at.isoformat() if at else None})
     return jsonify(tasks=tasks)
+
+
+@app.get("/api/my/submissions/<ref>")
+@api_user()
+def api_my_submission(ref):
+    """A student's own submitted answers (for the answer-sheet view). Correct answers are never included."""
+    u = current_user()
+    if not REF_RE.match(ref) or not any(str(t.get("id")) == ref for t in assigned_tasks(u)):
+        return jsonify(error="forbidden"), 403
+    with pool.connection() as conn:
+        done = conn.execute("SELECT 1 FROM submission_status WHERE student_id = %s AND task_ref = %s AND status = 'YES'",
+                            (u["id"], ref)).fetchone()
+    if not done:
+        return jsonify(error="not_submitted"), 404
+    try:
+        raw = store_get(sub_key(u["id"], ref))
+    except Exception:
+        app.logger.exception("storage read failed")
+        return jsonify(error="storage_error"), 502
+    if raw is None:
+        return jsonify(error="not_found"), 404
+    p = json.loads(raw)
+    sc = p.get("score")
+    return jsonify(task={k: (p.get("task") or {}).get(k, "") for k in ("id", "title", "skill")},
+                   student={k: (p.get("student") or {}).get(k) for k in ("name", "code")},
+                   submittedAt=p.get("submittedAt"), review=p.get("review") or [],
+                   score={k: sc[k] for k in ("correct", "total", "band")} if sc else None)
 
 
 @app.post("/api/my/submissions")

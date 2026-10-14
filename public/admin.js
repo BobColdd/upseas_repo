@@ -1,4 +1,4 @@
-const A={d:null,L:null,tab:'students',sel:null,q:'',subs:{},ans:{},mk:{}};let N=1000;
+const A={d:null,L:null,tab:'students',sel:null,q:'',subs:{},ans:{}};let N=1000;
 const sk=id=>(SKILLS.find(s=>s.id===id)||{}).name||id;
 const stu=id=>A.d.students.find(s=>s.id===id);
 const val=id=>($(id)||{}).value||'';
@@ -49,53 +49,25 @@ function syncStudents(list){const old=A.d.students||[];   // DB is the source of
 
 async function openStudent(id){
   try{const r=await fetch('/api/admin/students/'+id+'/submissions');A.subs[id]=r.ok?(await r.json()).submissions:[]}catch(e){A.subs[id]=[]}
+  await Promise.all((A.subs[id]||[]).filter(x=>x.status==='YES').map(async x=>{try{const r=await fetch('/api/admin/students/'+id+'/submissions/'+encodeURIComponent(x.task));if(r.ok)A.ans[id+'/'+x.task]=await r.json()}catch(e){}}));
   A.sel=id;render()}
-function reviewBody(p,mq){mq=mq||{};return (p.review||[]).map(sec=>`<details class="topic"><summary>${esc(sec.label||'')}${sec.heading?' · '+esc(sec.heading):''}</summary>`+
-    (sec.items?`<ul class="serif">${sec.items.map((i,n)=>`<li><b>${n+1}.</b> ${esc(i.q||'')}<br>${mq[i.id]?`<span class="${mq[i.id].correct?'okm':'badm'}">${mq[i.id].correct?'\u2713':'\u2717'}</span> `:''}<span class="chip">${i.a?esc(i.a):'— no answer —'}</span>${mq[i.id]&&!mq[i.id].correct?` <small>Correct: ${esc(mq[i.id].expected)}</small>`:''}</li>`).join('')}</ul>`
+function reviewBody(p){const mk={};((p.score&&p.score.items)||[]).forEach(x=>mk[x.id]=x);return (p.review||[]).map(sec=>`<details class="topic"><summary>${esc(sec.label||'')}${sec.heading?' · '+esc(sec.heading):''}</summary>`+
+    (sec.items?`<ul class="serif">${sec.items.map((i,n)=>`<li><b>${mk[i.id]?mk[i.id].n:n+1}.</b> ${esc(i.q||'')}<br><span class="chip">${i.a?esc(i.a):'— no answer —'}</span>${mk[i.id]?(mk[i.id].correct?' <span class="badge ok">✓ correct</span>':` <span class="badge">✗ expected: ${esc(mk[i.id].expected)}</span>`):''}</li>`).join('')}</ul>`
       :`<p class="serif" style="white-space:pre-wrap">${sec.text?esc(sec.text):'— no answer —'}</p><p class="hint">${sec.words||0} words</p>`)+`</details>`).join('')}
-const CRIT=[['ta','Task response / achievement'],['cc','Coherence and cohesion'],['lr','Lexical resource'],['gra','Grammar range and accuracy']];
-const wbox=(sid,ref)=>$('wf-'+sid+'-'+ref);
-function writingForm(x,sid,p){const m=A.mk[sid+'/'+x.task],d=(m&&m.details)||{},old=d.tasks||[];
-  const opts=v=>`<option value="">\u2013</option>`+Array.from({length:19},(_,k)=>(18-k)/2).map(b=>`<option value="${b}"${v===b?' selected':''}>${b.toFixed(1)}</option>`).join('');
-  return `<div class="card" id="wf-${sid}-${x.task}" style="margin-top:12px;background:var(--soft)"><h3 style="margin:0 0 4px">Mark writing</h3>
-  <p class="hint" style="margin:0 0 10px">Give each task a band for the four criteria. Task bands and the overall band are worked out automatically (Task 2 counts double).</p>
-  ${(p.review||[]).map((sec,i)=>`<div class="note"><b>${esc(sec.label||'Task '+(i+1))}</b><div class="inline" style="flex-wrap:wrap;margin-top:6px">${CRIT.map(([c,l])=>`<label class="hint" style="display:grid;gap:2px">${esc(l)}<select data-t="${i}" data-c="${c}">${opts((old[i]||{})[c])}</select></label>`).join('')}</div></div>`).join('')}
-  <div class="field"><label>Feedback for the student</label><textarea data-fb rows="4">${esc(d.feedback||'')}</textarea></div>
-  <label class="chk"><input type="checkbox" data-rel ${m&&m.released?'checked':''}> Release to the student</label>
-  <p class="msg" data-msg role="alert"></p><button class="btn" onclick="saveWriting('${sid}','${x.task}')">Save marks</button></div>`}
-function setMark(sid,ref,m){const row=(A.subs[sid]||[]).find(x=>x.task===ref);
-  if(row)Object.assign(row,{marked:true,skill:m.skill,score:m.score,total:m.total,band:m.band,released:m.released});A.mk[sid+'/'+ref]=m}
-async function saveWriting(sid,ref){const box=wbox(sid,ref),msg=box.querySelector('[data-msg]'),tasks=[];
-  box.querySelectorAll('select[data-c]').forEach(el=>{const i=+el.dataset.t;(tasks[i]=tasks[i]||{})[el.dataset.c]=el.value===''?null:parseFloat(el.value)});
-  if(tasks.some(t=>CRIT.some(([c])=>t[c]===null))){msg.textContent='Choose a band for every criterion.';msg.className='msg err';return}
-  try{const r=await fetch('/api/admin/students/'+sid+'/submissions/'+encodeURIComponent(ref)+'/writing',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({tasks,feedback:box.querySelector('[data-fb]').value,release:box.querySelector('[data-rel]').checked})});
-    const out=await r.json().catch(()=>({}));if(!r.ok)throw 0;setMark(sid,ref,out.marks);render()}
-  catch(e){msg.textContent='Could not save the marks. Try again.';msg.className='msg err'}}
-async function remark(sid,ref){
-  try{const r=await fetch('/api/admin/students/'+sid+'/submissions/'+encodeURIComponent(ref)+'/mark',{method:'POST'});const out=await r.json().catch(()=>({}));
-    if(r.status===404&&out.error==='no_answer_key')return alert('No answer key found. Add one in the Content tab with one of these names:\n\n'+(out.keys||[]).join('\n'));
-    if(!r.ok)throw 0;setMark(sid,ref,out.marks);render()}
-  catch(e){alert('Could not mark this submission.')}}
-function subCard(x,sid){const p=A.ans[sid+'/'+x.task],t=A.d.tasks.find(k=>k.id===x.task),m=A.mk[sid+'/'+x.task];
-  const skill=(t&&t.skill)||x.skill||(p&&p.task&&p.task.skill)||'',auto=skill==='reading'||skill==='listening';
-  const mq={};((m&&m.details&&m.details.questions)||[]).forEach(q=>mq[q.id]=q);
+function subCard(x,sid){const p=A.ans[sid+'/'+x.task],t=A.d.tasks.find(k=>k.id===x.task);
   const all=p?(p.review||[]).flatMap(sec=>sec.items||[]):[],n=all.filter(i=>i.a).length;
   return `<div class="card" style="margin-bottom:12px"><div class="bar" style="margin:0 0 8px"><h3 style="margin:0;flex:1">${esc(t?t.title:x.task)}</h3><span class="hint">${x.submittedAt?esc(new Date(x.submittedAt).toLocaleString()):''}</span></div>
-  <div><span class="badge ok">Submitted: YES</span>${skill?`<span class="chip">${esc(sk(skill))}</span>`:''}${all.length?`<span class="chip">${n}/${all.length} answered</span>`:''}${p&&p.secondsLeft!=null?`<span class="chip">${fmt(p.secondsLeft)} left</span>`:''}${p&&p.auto?`<span class="chip">time ran out</span>`:''}
-  ${x.band!=null?`<span class="chip band"><b>${Number(x.band).toFixed(1)}</b> Band</span>`:''}${x.total?`<span class="chip">${x.score}/${x.total} correct</span>`:''}${x.marked?`<span class="badge ${x.released?'ok':''}">${x.released?'Released':'Not released'}</span>`:`<span class="badge">Not marked</span>`}</div>
-  ${p?reviewBody(p,mq):`<div style="margin-top:10px"><button class="btn" onclick="viewAnswers('${sid}','${x.task}')">View answers</button></div>`}
-  ${p&&skill==='writing'?writingForm(x,sid,p):''}
-  <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">${auto?`<button class="btn" onclick="remark('${sid}','${x.task}')">${x.marked?'Mark again':'Mark now'}</button>`:''}<button class="btn ghost" onclick="retake('${sid}','${x.task}')">Allow retake</button></div></div>`}
+  <div><span class="badge ok">Submitted: YES</span>${t&&t.skill?`<span class="chip">${esc(sk(t.skill))}</span>`:''}${p&&p.score?`<span class="chip band"><b>${p.score.correct}/${p.score.total}</b> correct</span>${p.score.band!=null?`<span class="chip band tot"><b>${Number(p.score.band).toFixed(1)}</b> band</span>`:''}`:''}${all.length?`<span class="chip">${n}/${all.length} answered</span>`:''}${p&&p.secondsLeft!=null?`<span class="chip">${fmt(p.secondsLeft)} left</span>`:''}${p&&p.auto?`<span class="chip">time ran out</span>`:''}</div>
+  ${p?reviewBody(p):`<div style="margin-top:10px"><button class="btn" onclick="viewAnswers('${sid}','${x.task}')">View answers</button></div>`}
+  <div style="margin-top:10px"><button class="btn ghost" onclick="retake('${sid}','${x.task}')">Allow retake</button></div></div>`}
 function subsHtml(id){const l=(A.subs[id]||[]).filter(x=>x.status==='YES');
   return `<h3 style="margin:0 0 10px">Submissions</h3>${l.length?l.map(x=>subCard(x,id)).join(''):`<p class="hint" style="margin-bottom:16px">No submissions yet.</p>`}`}
 async function viewAnswers(sid,ref){
-  try{const r=await fetch('/api/admin/students/'+sid+'/submissions/'+encodeURIComponent(ref));if(!r.ok)throw 0;A.ans[sid+'/'+ref]=await r.json();
-    try{const m=await fetch('/api/admin/students/'+sid+'/submissions/'+encodeURIComponent(ref)+'/marks');if(m.ok){const j=(await m.json()).marks;if(j)A.mk[sid+'/'+ref]=j}}catch(e){}}
+  try{const r=await fetch('/api/admin/students/'+sid+'/submissions/'+encodeURIComponent(ref));if(!r.ok)throw 0;A.ans[sid+'/'+ref]=await r.json()}
   catch(e){alert('Could not load the answers.')}render()}
 async function retake(sid,ref){if(!confirm('Set this back to NO so the student can take the task again? The old answers are kept in an archive.'))return;
   try{const r=await fetch('/api/admin/students/'+sid+'/submissions/'+encodeURIComponent(ref)+'/reopen',{method:'POST'});if(!r.ok)throw 0;
-    const row=(A.subs[sid]||[]).find(x=>x.task===ref);if(row){row.status='NO';row.submittedAt=null;Object.assign(row,{marked:false,band:null,score:null,total:null,released:false})}delete A.ans[sid+'/'+ref];delete A.mk[sid+'/'+ref];
+    const row=(A.subs[sid]||[]).find(x=>x.task===ref);if(row){row.status='NO';row.submittedAt=null}delete A.ans[sid+'/'+ref];
     const st=stu(sid);if(st)st.submitted=Math.max(0,(st.submitted||0)-1);render()}
   catch(e){alert('Could not reopen the task.')}}
 function resultCard(r){const P=A.L,t=[...A.d.tasks,...A.d.mocks].find(x=>x.id===r.ref);
@@ -106,7 +78,7 @@ function resultCard(r){const P=A.L,t=[...A.d.tasks,...A.d.mocks].find(x=>x.id===
   ${r.text?`<details class="topic" style="margin:10px 0 0"><summary>${esc(P.writing)}</summary><p class="serif">${esc(r.text)}</p></details>`:''}</div>`}
 function profile(id){const s=stu(id),P=A.L.profile,S2=A.L.status;
   const done=ref=>(A.subs[id]||[]).some(x=>x.task===ref&&x.status==='YES');
-  const list=k=>{const m=A.d[k].filter(x=>x.assignedTo.includes(id));return m.length?m.map(x=>`<div class="note"><b>${esc(x.title)}</b> <span class="badge ${done(x.id)?'ok':''}">Submitted: ${done(x.id)?'YES':'NO'}</span><small>${esc((x.skill?sk(x.skill)+' · ':'')+(x.due||x.date||''))}</small></div>`).join(''):`<p class="hint">${esc(P.none)}</p>`};
+  const list=k=>{const m=A.d[k].filter(x=>x.assignedTo.includes(id));return m.length?m.map(x=>`<div class="note"><b>${esc(x.title)}</b> <span class="badge ${done(x.id)?'ok':''}">Submitted: ${done(x.id)?'YES':'NO'}</span><small>${esc((x.skill?sk(x.skill)+' · ':'')+(x.date||''))}</small></div>`).join(''):`<p class="hint">${esc(P.none)}</p>`};
   const res=A.d.results.filter(r=>r.student===id).sort((a,b)=>b.date.localeCompare(a.date));
   return `<button class="link" onclick="A.sel=null;render()">← ${esc(P.back)}</button>
   <div class="card" style="margin:12px 0"><h2 style="margin:0">${esc(s.name)}</h2><p class="hint" style="margin:4px 0 8px">${s.code?`<b>${esc(s.code)}</b> · `:''}${esc(s.email)}</p><span class="chip">${esc(P.target)}: ${esc(s.target)}</span> </div>
@@ -126,9 +98,9 @@ function items(kind){const L=A.L[kind],list=A.d[kind];
   <p class="hint" style="margin:0 0 8px">${esc(meta(x))}</p>${x.note?`<p style="margin:0 0 8px">${esc(x.note)}</p>`:''}<div>${x.assignedTo.map(id=>`<span class="chip">${esc(stu(id)?.name||id)}</span>`).join('')}</div>
   <div class="hidden" id="p-${x.id}" style="margin-top:12px">${checks('chk_'+x.id,x.assignedTo)}<button class="btn" onclick="saveAssign('${kind}','${x.id}')">${esc(A.L.save)}</button></div></div>`).join(''):`<p class="hint">${esc(L.empty)}</p>`}</div></div>`}
 function sourceFiles(kind){const src=A.L[kind].source||{prefixes:[],exclude:[]};
-  return (A.files||[]).filter(f=>/\.json$/i.test(f.key)&&src.prefixes.some(p=>f.key.startsWith(p))&&!src.exclude.some(x=>f.key.toLowerCase().includes(x)))}
+  return (A.files||[]).filter(f=>/\.json$/i.test(f.key)&&src.prefixes.some(p=>f.key.startsWith(p))&&!src.exclude.some(x=>f.key.toLowerCase().includes(x))&&!/\/(questions|answers)\.json$/i.test(f.key))}
 function fillFrom(kind,key){if(!key)return;
-  const name=key.split('/').pop().replace(/\.json$/i,'').replace(/[-_]+/g,' ');
+  const parts=key.replace(/\.json$/i,'').split('/');let name=parts.pop();if(/^passages?$/i.test(name)&&parts.length>1)name=parts.pop();name=name.replace(/[-_]+/g,' ');
   if($(`${kind}-title`))$(`${kind}-title`).value=name.charAt(0).toUpperCase()+name.slice(1);
   const folder=key.split('/')[0];if($(`${kind}-skill`)&&SKILLS.some(x=>x.id===folder))$(`${kind}-skill`).value=folder}
 async function persist(okMsg){
@@ -159,6 +131,7 @@ function paint(){const cur=A.L.tabs.find(t=>t.id===A.tab)||{label:''};
   try{[UI,SKILLS]=await Promise.all([J('data/ui.json'),J('data/skills.json')]);[A.d,A.L]=await Promise.all([J('data/admin-data.json'),J('data/admin.json')])}
   catch(e){$('app').textContent='Could not load '+e.message+'. Check that the Flask server is running.';return}
   ['students','tasks','mocks','results'].forEach(k=>A.d[k]=A.d[k]||[]);
+  ['tasks','mocks'].forEach(k=>{if(A.L[k]&&A.L[k].fields)A.L[k].fields=A.L[k].fields.filter(f=>f.id!=='due')});   // due dates are not used
   try{const r=await fetch('/api/admin/students');if(r.ok)syncStudents((await r.json()).students)}catch(e){}
   N=Math.max(N,...[...A.d.tasks,...A.d.mocks].map(x=>parseInt(String(x.id).slice(1))||0));   // keep new ids unique after a reload
   document.title=A.L.title+' · UPSEAS CONSULTANTS';render()})();

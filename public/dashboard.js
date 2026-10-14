@@ -13,8 +13,8 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
   try { tasks = await TK.load(); }
   catch (e) { $('next').innerHTML = ''; $('err').textContent = 'Could not load your tasks. Please refresh the page.'; return; }
 
-  const todo = tasks.filter(t => !t.submitted), late = todo.filter(t => TK.state(t) === 'late'), done = tasks.length - todo.length;
-  $('s-todo').textContent = todo.length; $('s-late').textContent = late.length; $('s-done').textContent = done;
+  const todo = tasks.filter(t => !t.submitted), done = tasks.length - todo.length;
+  $('s-todo').textContent = todo.length; $('s-done').textContent = done;
   $('stats').hidden = !tasks.length;
   $('lead').textContent = !tasks.length ? 'Nothing has been assigned yet. Your tutor will add tasks here.'
     : todo.length ? 'You have ' + todo.length + (todo.length === 1 ? ' task' : ' tasks') + ' waiting for you.'
@@ -23,9 +23,9 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
   // "Up next": the first three tasks still to do
   const next = TK.sort(todo).slice(0, 3);
   $('next').innerHTML = next.length ? next.map(t => {
-    const d = TK.due(t), st = TK.state(t);
+    const st = TK.state(t);
     return `<a class="tk-card" href="practice.html?task=${encodeURIComponent(t.id)}"><span class="ico">${TK.icon(t.skill)}</span>
-      <div class="tk-main"><h3>${esc(t.title)}</h3><p class="tk-meta"><span>${esc(TK.name(t.skill))}</span><span>${esc(TK.time(t.skill))}</span>${d.label ? `<span class="${d.overdue ? 'late' : ''}">Due ${esc(d.label)}</span>` : ''}</p></div>
+      <div class="tk-main"><h3>${esc(t.title)}</h3><p class="tk-meta"><span>${esc(TK.name(t.skill))}</span><span>${esc(TK.time(t.skill))}</span></p></div>
       <div class="tk-act"><span class="pill ${st}">${TK.stateLabel[st]}</span><span class="btn">Open</span></div></a>`;
   }).join('') : `<p class="tk-empty">${tasks.length ? 'No tasks left to do. Check the Practice page for your submitted work.' : 'No tasks have been assigned to you yet.'}</p>`;
 

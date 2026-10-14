@@ -8,7 +8,6 @@ const QI={
   nothing:'No tasks match this view.',
   confirmStart:'Start “{t}” now?\n\nThe timer cannot be paused once the test opens.',
   headphones:'Put your headphones on and check your volume. The recording starts as soon as the test opens.',
-  due:'Due',
   loadError:'Could not load your tasks. Please refresh the page.',
   openError:'Could not open this task. Please try again, or tell your tutor.'
 };
@@ -133,10 +132,10 @@ const L={
   <section class="panel"><div class="head"><strong>${esc(UI.yourAnswer)}</strong><span id="wcount">${esc(tpl(UI.wordsOf,{n:words(),min:t.minWords}))}</span></div><textarea class="editor" aria-label="${esc(UI.yourAnswer)}" oninput="S.ans['essay'+S.i]=this.value;upd();prog()">${esc(S.ans['essay'+S.i]||'')}</textarea></section></main>`},
  speaking(){const p=items()[S.i];return `<main class="xmain speaking"><section class="panel"><div class="head"><strong>${esc(p.label)}</strong>${tabs()}</div><div class="content"><div class="cue"><b>${esc(p.title)}</b>${p.points?`<p class="hint">${esc(UI.youShouldSay)}</p><ul>${p.points.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><p class="hint">${esc(tpl(UI.prep,{prep:p.prep,speak:p.speak}))}</p>`:(p.questions||[]).map(x=>`<p>${esc(x)}</p>`).join('')}</div>${p.audio?`<audio controls preload="none" style="width:100%;margin-top:12px" src="${esc(p.audio)}"></audio>`:''}</div></section>
   <section class="panel"><div class="head"><strong>${esc(UI.respond)}</strong></div><div class="content center"><button class="rec" aria-pressed="${S.rec}" onclick="S.rec=!S.rec;render()">${esc(S.rec?UI.stop:UI.record)}</button><p class="hint">${esc(S.rec?UI.recording:UI.tapRecord)}</p><div style="display:flex;gap:10px;justify-content:center"><button class="btn ghost">${esc(UI.playback)}</button><button class="btn">${esc(UI.feedback)}</button></div></div></section></main>`}};
-const taskCard=t=>{const d=TK.due(t),st=TK.state(t);
+const taskCard=t=>{const st=TK.state(t);
   return `<article class="tk-card${S.hl===t.id?' hl':''}" id="t-${esc(t.id)}"><span class="ico">${TK.icon(t.skill)}</span>
-    <div class="tk-main"><h3>${esc(t.title)}</h3><p class="tk-meta"><span>${esc(sk(t.skill))}</span><span>${esc(TK.time(t.skill))}</span>${d.label?`<span class="${d.overdue&&!t.submitted?'late':''}">${esc(QI.due)} ${esc(d.label)}</span>`:''}${t.submitted&&t.submittedAt?`<span>Submitted ${esc(TK.day(t.submittedAt))}</span>`:''}</p>${t.note?`<p class="tk-note">${esc(t.note)}</p>`:''}</div>
-    <div class="tk-act"><span class="pill ${st}">${TK.stateLabel[st]}</span>${t.submitted?'<button class="btn ghost" disabled>Submitted</button>':`<button class="btn" data-start="${esc(t.id)}">Start task</button>`}</div></article>`};
+    <div class="tk-main"><h3>${esc(t.title)}</h3><p class="tk-meta"><span>${esc(sk(t.skill))}</span><span>${esc(TK.time(t.skill))}</span>${t.submitted&&t.submittedAt?`<span>Submitted ${esc(TK.day(t.submittedAt))}</span>`:''}</p>${t.note?`<p class="tk-note">${esc(t.note)}</p>`:''}</div>
+    <div class="tk-act"><span class="pill ${st}">${TK.stateLabel[st]}</span>${t.submitted?`<button class="btn ghost" data-sheet="${esc(t.id)}">View answers</button>`:`<button class="btn" data-start="${esc(t.id)}">Start task</button>`}</div></article>`};
 function renderList(){
   $('intro-msg').textContent=S.err;
   const T=S.tasks,box=$('tasks');
@@ -183,6 +182,34 @@ async function submitAll(auto){
   catch(e){S.msg=S.over?'Could not send yet. Retrying automatically…':'Could not submit. Check your connection and press Submit again.';if(S.over)setTimeout(()=>submitAll(true),4000);else if(S.left>0)runTimer()}
   S.sending=false;render()}
 function doneView(){const sc=S.score;return `<section class="count"><p class="hint">${esc(S.task.title)}</p><h1>Answers submitted</h1>${sc?`<p class="serif"><b>Score: ${sc.correct} / ${sc.total}</b>${sc.band!=null?` · Band ${Number(sc.band).toFixed(1)}`:''}</p>`:''}<p class="serif">Your answers have been sent to your tutor.</p><button class="btn" onclick="again()">Back to my tasks</button></section>`}
+// ---- answer sheet: a student's own submitted answers, numbered like a paper answer sheet (no correct answers shown)
+async function openSheet(id){
+  const t=(S.tasks||[]).find(x=>x.id===id);if(!t||!t.submitted)return;
+  S.task=t;S.sheet=null;S.msg='';S.phase='sheet';render();
+  try{const r=await fetch('/api/my/submissions/'+encodeURIComponent(id));if(!r.ok)throw 0;S.sheet=await r.json()}
+  catch(e){S.msg='Could not load your answer sheet. Please try again.'}
+  render()}
+function backFromSheet(){again();S.view='done';render()}
+function sheetView(){
+  const d=S.sheet,t=S.task,back='<button class="btn ghost" onclick="backFromSheet()">Back to my tasks</button>';
+  if(!d)return `<section class="sheet"><p class="hint">${esc(t.title)}</p><h1>Answer sheet</h1><p class="hint">${esc(S.msg||'Loading your answers…')}</p>${back}</section>`;
+  let n=0;
+  const secs=(d.review||[]).map(sec=>sec.items
+    ?`<div class="sh-sec">${sec.label?`<h2>${esc(sec.label)}</h2>`:''}<div class="sh-grid">${sec.items.map(i=>{n++;return `<div class="sh-row"><b>${n}</b><span class="${i.a?'':'none'}">${i.a?esc(i.a):'—'}</span></div>`}).join('')}</div></div>`
+    :`<div class="sh-sec"><h2>${esc(sec.label||'')}</h2><div class="sh-essay">${sec.text?esc(sec.text):'<span class="none">No answer</span>'}</div><p class="hint">${sec.words||0} words</p></div>`).join('');
+  const sc=d.score,who=d.student||{},when=d.submittedAt?new Date(d.submittedAt).toLocaleString(undefined,{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+  return `<section class="sheet"><p class="hint">${esc(sk(t.skill))} · ${esc(t.title)}</p><h1>Answer sheet</h1>
+  <div class="sh-meta"><span><b>${esc(who.name||'')}</b>${who.code?' · '+esc(who.code):''}</span>${when?`<span>Submitted ${esc(when)}</span>`:''}${sc?`<span><b>Score: ${sc.correct} / ${sc.total}</b>${sc.band!=null?' · Band '+Number(sc.band).toFixed(1):''}</span>`:''}</div>
+  <div class="sh-paper">${secs||'<p class="hint">No answers were recorded.</p>'}</div>${back}</section>`}
+(()=>{const st=document.createElement('style');st.textContent=`
+.sheet{max-width:880px;margin:0 auto;padding:28px 18px}.sheet h1{margin:4px 0 12px}
+.sh-meta{display:flex;flex-wrap:wrap;gap:6px 22px;margin:0 0 16px;color:var(--mute)}
+.sh-paper{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px 22px 14px;margin-bottom:18px}
+.sh-sec h2{font-size:15px;margin:18px 0 6px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)}
+.sh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));column-gap:34px}
+.sh-row{display:flex;gap:14px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line)}
+.sh-row b{min-width:30px;text-align:right;color:var(--mute)}.sh-row span{word-break:break-word}
+.sh-sec .none{color:var(--mute)}.sh-essay{white-space:pre-wrap;line-height:1.6;padding:6px 0}`;document.head.appendChild(st)})();
 function again(){S.phase='intro';S.sel='';S.view='todo';S.hl='';S.d=null;S.score=null;S.msg='';S.over=false;S.flag={};S.tasks=null;render();loadTasks()}
 function render(){
   const intro=S.phase==='intro';
@@ -190,9 +217,9 @@ function render(){
   document.body.classList.toggle('in-exam',S.phase==='test');
   if(intro){renderList();return}
   $('app').className=S.phase==='test'?'exam':'';$('app').style.setProperty('--rs',S.fs);
-  $('app').innerHTML=({count:countView,test:testView,done:doneView})[S.phase]();
+  $('app').innerHTML=({count:countView,test:testView,done:doneView,sheet:sheetView})[S.phase]();
   audUi();prog()}
-$('tasks').onclick=e=>{const b=e.target.closest('[data-start]');if(b)startTask(b.dataset.start)};
+$('tasks').onclick=e=>{const b=e.target.closest('[data-start]');if(b)return startTask(b.dataset.start);const s=e.target.closest('[data-sheet]');if(s)openSheet(s.dataset.sheet)};
 document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{S.view=b.dataset.view;renderList()});
 document.querySelectorAll('[data-skill]').forEach(b=>b.onclick=()=>{S.skillF=b.dataset.skill;renderList()});
 (async()=>{

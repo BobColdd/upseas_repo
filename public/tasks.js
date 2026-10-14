@@ -1,4 +1,4 @@
-// Shared helpers for the student pages (dashboard + practice): skill icons, due dates, task status.
+// Shared helpers for the student pages (dashboard + practice): skill icons, task status.
 const BRAND = 'UPSEAS CONSULTANTS';   // used on the full-screen exam header (the other pages hold it in their HTML)
 const TK = {
   skills: {
@@ -10,18 +10,9 @@ const TK = {
   icon: s => '<svg class="i" viewBox="0 0 24 24" aria-hidden="true">' + ((TK.skills[s] || TK.skills.reading).icon) + '</svg>',
   name: s => (TK.skills[s] || {}).name || s || 'Task',
   time: s => (TK.skills[s] || {}).time || '',
-  // "due" is whatever the admin typed; show it nicely if it parses as a date, otherwise as typed
-  due(t) {
-    if (!t.due) return { label: '', overdue: false, ts: Infinity };
-    const d = new Date(t.due);
-    if (isNaN(d)) return { label: String(t.due), overdue: false, ts: Infinity };
-    return { label: d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }),
-             overdue: d.getTime() + 864e5 < Date.now(), ts: d.getTime() };
-  },
-  state: t => t.submitted ? 'done' : TK.due(t).overdue ? 'late' : 'todo',
-  stateLabel: { done: 'Submitted', late: 'Overdue', todo: 'To do' },
-  // to-do first (soonest due first), submitted last
-  sort: list => [...list].sort((a, b) => (a.submitted - b.submitted) || (TK.due(a).ts - TK.due(b).ts)),
+  state: t => t.submitted ? 'done' : 'todo',
+  stateLabel: { done: 'Submitted', todo: 'To do' },
+  sort: list => [...list].sort((a, b) => (a.submitted ? 1 : 0) - (b.submitted ? 1 : 0)),   // to-do first, submitted last
   async load() {
     const r = await fetch('/api/my/tasks');
     if (!r.ok) throw new Error('tasks');
